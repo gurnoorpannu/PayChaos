@@ -6,6 +6,7 @@ import type {
   ScenarioId,
   TimelineEntry
 } from "../core/types.js";
+import { RepositoryPanel } from "./RepositoryPanel.js";
 
 const kindLabel: Record<TimelineEntry["kind"], string> = {
   analysis: "AI",
@@ -180,6 +181,7 @@ export function App() {
         <nav className="topnav" aria-label="Page sections">
           <a className="active" href="#campaign">Campaign</a>
           <a href="#architecture">Architecture</a>
+          <a href="#repository">Repository</a>
           <a href="#finding">Finding</a>
         </nav>
         <div className="target-pill">
@@ -529,6 +531,15 @@ export function App() {
             </div>
           </article>
         </section>
+
+        <RepositoryPanel
+          onRunScenario={(scenario) => {
+            setMode("vulnerable");
+            setScenarioId(scenario);
+            void runCampaign("vulnerable", scenario);
+            window.location.hash = "campaign";
+          }}
+        />
       </main>
 
       <footer>
