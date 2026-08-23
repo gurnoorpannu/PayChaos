@@ -87,6 +87,25 @@ symlinks, and never executes target code. It detects Razorpay webhook surfaces,
 signature boundaries, event-ID claims, database transactions, state guards and
 financial side effects. See [docs/SCANNING.md](docs/SCANNING.md).
 
+The same scanner is available in the dashboard. Use either bundled fixture or
+choose a local repository directory; supported source files are read by the
+browser and sent only to the local PayChaos process.
+
+### Optional AI enrichment
+
+PayChaos works without a model key using `grounded-rules-v1`. To enable explicit
+AI enrichment, copy the example environment file and add a key:
+
+```bash
+cp .env.example .env
+# set OPENAI_API_KEY, then restart npm run dev
+```
+
+The AI request uses the OpenAI Responses API with strict JSON Schema output and
+`store: false`. It receives bounded scan metadata—not source content or the
+absolute repository path—and runs only after **Send scan metadata to OpenAI** is
+clicked. See [docs/INTELLIGENCE.md](docs/INTELLIGENCE.md).
+
 ## Demo flow
 
 The dashboard starts on the **Vulnerable baseline** and runs `CHAOS-001`:
@@ -132,8 +151,12 @@ runner.
 | --- | --- | --- |
 | `GET` | `/api/health` | Runtime health |
 | `GET` | `/api/overview` | Demo target and scenario metadata |
-| `GET` | `/api/source/:mode` | Vulnerable or protected source evidence |
+| `GET` | `/api/intelligence/status` | Local or optional model-provider status |
+| `GET` | `/api/source/:scenario/:mode` | Scenario-specific vulnerable or protected source evidence |
 | `POST` | `/api/campaigns` | Run the deterministic campaign |
+| `POST` | `/api/repositories/demo/:mode` | Scan a bundled fixture repository |
+| `POST` | `/api/repositories/analyze` | Analyze bounded browser-selected files |
+| `POST` | `/api/intelligence/hypothesize` | Explicitly enrich a retained scan |
 
 Campaign request:
 
@@ -158,14 +181,14 @@ src/
 docs/
 ├── ARCHITECTURE.md
 ├── DEMO.md
+├── INTELLIGENCE.md
 └── SCANNING.md
 ```
 
 ## Buildathon roadmap
 
 - Add authenticated GitHub ingestion on top of the working local scanner.
-- Add a schema-constrained model provider for architecture mapping and
-  hypothesis generation, retaining the local analyzer as a no-key fallback.
+- Evaluate the schema-constrained model provider across the vulnerability corpus.
 - Add crash-after-commit and concurrent-capture campaigns.
 - Run merchant applications in disposable, network-isolated sandboxes.
 - Capture database queries, logs, spans, and fulfilment side effects as evidence.

@@ -11,6 +11,11 @@ npm run scan -- /path/to/repository
 npm run scan -- /path/to/repository --json
 ```
 
+The campaign dashboard exposes the same analysis through **Choose local
+repository**. Browser-selected source is posted only to the local PayChaos API;
+the scanner never receives a filesystem path it can traverse on behalf of the
+browser.
+
 Example:
 
 ```text

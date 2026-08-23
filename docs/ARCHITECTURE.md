@@ -19,9 +19,9 @@ The analyzer converts payment code into a compact architecture model:
 The local MVP includes a bounded repository scanner that maps TypeScript,
 JavaScript, Python, Java, Go, Ruby, PHP and C# source files without executing
 them. It detects Razorpay webhook surfaces and control boundaries before
-producing hypothesis candidates. A model-backed provider can later enrich the
-same typed structure for unfamiliar frameworks without changing the campaign
-engine.
+producing hypothesis candidates. An optional schema-constrained model provider
+can enrich the same typed structure without changing the campaign engine, while
+the deterministic local provider keeps development and evaluation key-free.
 
 ### 2. Hypothesis generator
 
@@ -126,6 +126,19 @@ flowchart TB
 
 The probabilistic plane may prioritize or explain. The deterministic plane
 alone decides pass or fail.
+
+## Intelligence provider boundary
+
+Repository analysis is a two-step, consent-preserving flow:
+
+1. Source files are scanned locally and assigned a short-lived scan ID.
+2. Only an explicit enrichment request can send bounded scan metadata to the
+   configured model provider.
+
+Raw source, absolute repository roots and credentials are excluded from the
+model input. The Responses API request uses strict JSON Schema output and
+`store: false`. Provider failure falls back to grounded local rules instead of
+blocking deterministic campaigns.
 
 ## Moving from the MVP to repository execution
 
