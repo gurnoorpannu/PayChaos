@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { analyzeMerchant, generateHypothesis } from "./analyzer.js";
 import { MerchantSimulator } from "./merchant.js";
+import { createSignedWebhookRequest } from "./razorpay.js";
 import type {
   CampaignReport,
   PaymentWebhook,
@@ -23,6 +24,7 @@ export function runDuplicateAfterTimeoutCampaign(
   const architecture = analyzeMerchant(mode);
   const hypothesis = generateHypothesis(architecture);
   const merchant = new MerchantSimulator(mode);
+  const signedRequest = createSignedWebhookRequest(webhook);
   const timeline: TimelineEntry[] = [
     {
       id: "analysis",
@@ -47,7 +49,7 @@ export function runDuplicateAfterTimeoutCampaign(
     }
   ];
 
-  const firstAttempt = merchant.deliver(webhook, 1, timeline);
+  const firstAttempt = merchant.deliver(signedRequest, 1, timeline);
   if (firstAttempt.timedOut) {
     timeline.push({
       id: "retry-scheduled",
@@ -58,7 +60,7 @@ export function runDuplicateAfterTimeoutCampaign(
       detail: "The same event ID and payload will be delivered again after the missing acknowledgement.",
       data: { eventId: webhook.eventId }
     });
-    merchant.deliver(webhook, 2, timeline);
+    merchant.deliver(signedRequest, 2, timeline);
   }
 
   const fulfilments = merchant.snapshot();

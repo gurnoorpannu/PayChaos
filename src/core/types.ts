@@ -16,6 +16,15 @@ export interface PaymentWebhook {
   currency: "INR";
 }
 
+export interface SignedWebhookRequest {
+  webhook: PaymentWebhook;
+  rawBody: string;
+  headers: {
+    "x-razorpay-event-id": string;
+    "x-razorpay-signature": string;
+  };
+}
+
 export interface Fulfilment {
   id: string;
   paymentId: string;

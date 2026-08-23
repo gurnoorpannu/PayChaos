@@ -1,9 +1,10 @@
 import type {
   Fulfilment,
-  PaymentWebhook,
   ProtectionMode,
+  SignedWebhookRequest,
   TimelineEntry
 } from "./types.js";
+import { demoWebhookSecret, verifyRazorpayWebhook } from "./razorpay.js";
 
 interface DeliveryResult {
   statusCode: number;
@@ -18,11 +19,40 @@ export class MerchantSimulator {
   constructor(private readonly mode: ProtectionMode) {}
 
   deliver(
-    webhook: PaymentWebhook,
+    request: SignedWebhookRequest,
     attempt: number,
     timeline: TimelineEntry[]
   ): DeliveryResult {
     const baseOffset = attempt === 1 ? 820 : 2_480;
+    const webhook = request.webhook;
+    const signatureValid = verifyRazorpayWebhook(
+      request.rawBody,
+      request.headers["x-razorpay-signature"],
+      demoWebhookSecret
+    );
+
+    if (!signatureValid) {
+      timeline.push({
+        id: `signature-${attempt}`,
+        offsetMs: baseOffset - 60,
+        kind: "webhook",
+        tone: "danger",
+        title: "Webhook signature rejected",
+        detail: "The HMAC did not match the raw request body. No merchant code was executed.",
+        data: { statusCode: 401 }
+      });
+      return { statusCode: 401, timedOut: false, duplicateIgnored: false };
+    }
+
+    timeline.push({
+      id: `signature-${attempt}`,
+      offsetMs: baseOffset - 60,
+      kind: "webhook",
+      tone: "success",
+      title: "Razorpay signature verified",
+      detail: "HMAC-SHA256 matched the unmodified raw request body.",
+      data: { signatureValid: true }
+    });
 
     timeline.push({
       id: `delivery-${attempt}`,
@@ -34,7 +64,8 @@ export class MerchantSimulator {
       data: { paymentId: webhook.paymentId, amount: webhook.amount }
     });
 
-    if (this.mode === "protected" && this.processedEvents.has(webhook.eventId)) {
+    const eventId = request.headers["x-razorpay-event-id"];
+    if (this.mode === "protected" && this.processedEvents.has(eventId)) {
       timeline.push({
         id: `dedupe-${attempt}`,
         offsetMs: baseOffset + 110,
@@ -42,14 +73,14 @@ export class MerchantSimulator {
         tone: "success",
         title: "Duplicate event rejected atomically",
         detail: "The unique event claim already exists; no business side effect was repeated.",
-        data: { eventId: webhook.eventId, rowsWritten: 0 }
+        data: { eventId, rowsWritten: 0 }
       });
 
       return { statusCode: 200, timedOut: false, duplicateIgnored: true };
     }
 
     if (this.mode === "protected") {
-      this.processedEvents.add(webhook.eventId);
+      this.processedEvents.add(eventId);
     }
 
     const fulfilment: Fulfilment = {
