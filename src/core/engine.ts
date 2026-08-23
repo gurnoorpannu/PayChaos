@@ -21,8 +21,8 @@ const webhook: PaymentWebhook = {
 export function runDuplicateAfterTimeoutCampaign(
   mode: ProtectionMode = "vulnerable"
 ): CampaignReport {
-  const architecture = analyzeMerchant(mode);
-  const hypothesis = generateHypothesis(architecture);
+  const architecture = analyzeMerchant(mode, "duplicate-after-timeout");
+  const hypothesis = generateHypothesis(architecture, "duplicate-after-timeout");
   const merchant = new MerchantSimulator(mode);
   const signedRequest = createSignedWebhookRequest(webhook);
   const timeline: TimelineEntry[] = [
@@ -98,6 +98,24 @@ export function runDuplicateAfterTimeoutCampaign(
       }
     ],
     fulfilments,
+    evidenceTable: {
+      title: "Fulfilment records",
+      columns: [
+        { key: "id", label: "ID" },
+        { key: "payment", label: "PAYMENT" },
+        { key: "order", label: "ORDER" },
+        { key: "amount", label: "AMOUNT" }
+      ],
+      rows: fulfilments.map((fulfilment, index) => ({
+        _id: fulfilment.id,
+        _tone: index > 0 ? "danger" : "neutral",
+        _badge: index > 0 ? "DUPLICATE" : "",
+        id: fulfilment.id,
+        payment: fulfilment.paymentId,
+        order: fulfilment.orderId,
+        amount: `₹${(fulfilment.amount / 100).toFixed(2)}`
+      }))
+    },
     finding: passed
       ? {
           severity: "none",

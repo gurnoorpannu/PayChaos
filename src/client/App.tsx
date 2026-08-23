@@ -3,6 +3,7 @@ import type {
   CampaignReport,
   OverviewResponse,
   ProtectionMode,
+  ScenarioId,
   TimelineEntry
 } from "../core/types.js";
 
@@ -13,14 +14,6 @@ const kindLabel: Record<TimelineEntry["kind"], string> = {
   network: "NETWORK",
   invariant: "ORACLE"
 };
-
-function formatMoney(paise: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 2
-  }).format(paise / 100);
-}
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const paths: Record<string, React.ReactNode> = {
@@ -87,11 +80,15 @@ export function App() {
   const [overview, setOverview] = useState<OverviewResponse | null>(null);
   const [report, setReport] = useState<CampaignReport | null>(null);
   const [mode, setMode] = useState<ProtectionMode>("vulnerable");
+  const [scenarioId, setScenarioId] = useState<ScenarioId>("duplicate-after-timeout");
   const [source, setSource] = useState("");
   const [running, setRunning] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const runCampaign = useCallback(async (nextMode: ProtectionMode) => {
+  const runCampaign = useCallback(async (
+    nextMode: ProtectionMode,
+    nextScenario: ScenarioId
+  ) => {
     setRunning(true);
     setError(null);
     const started = Date.now();
@@ -101,9 +98,9 @@ export function App() {
         fetch("/api/campaigns", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ mode: nextMode })
+          body: JSON.stringify({ mode: nextMode, scenario: nextScenario })
         }),
-        fetch(`/api/source/${nextMode}`)
+        fetch(`/api/source/${nextScenario}/${nextMode}`)
       ]);
 
       if (!campaignResponse.ok || !sourceResponse.ok) {
@@ -135,7 +132,7 @@ export function App() {
         const payload = (await response.json()) as OverviewResponse;
         setOverview(payload);
         setSource(payload.source);
-        await runCampaign("vulnerable");
+        await runCampaign("vulnerable", "duplicate-after-timeout");
       } catch (bootstrapError) {
         setError(
           bootstrapError instanceof Error
@@ -152,12 +149,23 @@ export function App() {
   const changeMode = (nextMode: ProtectionMode) => {
     if (nextMode === mode && report) return;
     setMode(nextMode);
-    void runCampaign(nextMode);
+    void runCampaign(nextMode, scenarioId);
+  };
+
+  const changeScenario = (nextScenario: ScenarioId) => {
+    if (nextScenario === scenarioId && report) return;
+    setScenarioId(nextScenario);
+    void runCampaign(mode, nextScenario);
   };
 
   const lineNumbers = useMemo(
     () => source.split("\n").map((line, index) => ({ number: index + 1, line })),
     [source]
+  );
+
+  const selectedScenario = useMemo(
+    () => overview?.scenarios.find((item) => item.scenario === scenarioId),
+    [overview, scenarioId]
   );
 
   const failed = report?.status === "failed";
@@ -194,13 +202,33 @@ export function App() {
           <div className="hero__actions">
             <button
               className="run-button"
-              onClick={() => void runCampaign(mode)}
+              onClick={() => void runCampaign(mode, scenarioId)}
               disabled={running}
             >
               <span className={running ? "spin" : ""}><Icon name={running ? "spark" : "play"} /></span>
               {running ? "Attacking integration…" : "Run campaign"}
             </button>
-            <span className="keyboard-hint">CHAOS-001 · deterministic replay</span>
+            <span className="keyboard-hint">{selectedScenario?.id ?? "CHAOS"} · deterministic replay</span>
+          </div>
+        </section>
+
+        <section className="scenario-switcher" aria-label="Chaos scenario">
+          <div className="scenario-switcher__intro">
+            <span className="section-kicker">CAMPAIGN LIBRARY</span>
+            <strong>Choose a failure hypothesis</strong>
+          </div>
+          <div className="scenario-options">
+            {overview?.scenarios.map((scenario) => (
+              <button
+                className={scenario.scenario === scenarioId ? "active" : ""}
+                key={scenario.scenario}
+                onClick={() => changeScenario(scenario.scenario)}
+              >
+                <span>{scenario.id}</span>
+                <strong>{scenario.name}</strong>
+                <small>{scenario.scenario === "duplicate-after-timeout" ? "IDEMPOTENCY" : "STATE ORDERING"}</small>
+              </button>
+            ))}
           </div>
         </section>
 
@@ -230,7 +258,7 @@ export function App() {
           <div className="error-banner">
             <strong>Campaign unavailable</strong>
             <span>{error}</span>
-            <button onClick={() => void runCampaign(mode)}>Try again</button>
+            <button onClick={() => void runCampaign(mode, scenarioId)}>Try again</button>
           </div>
         ) : null}
 
@@ -318,13 +346,13 @@ export function App() {
           <aside className="side-stack">
             <article className="panel scenario-panel">
               <span className="section-kicker">FAULT PLAN</span>
-              <h2>{overview?.scenario.name ?? "Loading scenario…"}</h2>
-              <p>{overview?.scenario.description}</p>
+              <h2>{selectedScenario?.name ?? "Loading scenario…"}</h2>
+              <p>{selectedScenario?.description}</p>
               <div className="fault-chain">
-                {overview?.scenario.operators.map((operator, index) => (
+                {selectedScenario?.operators.map((operator, index) => (
                   <div key={operator}>
                     <span className={index === 2 ? "fault-hot" : ""}>{operator}</span>
-                    {index < overview.scenario.operators.length - 1 ? <Icon name="arrow" size={14} /> : null}
+                    {index < selectedScenario.operators.length - 1 ? <Icon name="arrow" size={14} /> : null}
                   </div>
                 ))}
               </div>
@@ -442,22 +470,34 @@ export function App() {
             <div className="panel-heading">
               <div>
                 <span className="section-kicker">DATABASE EVIDENCE</span>
-                <h2>Fulfilment records</h2>
+                <h2>{report?.evidenceTable.title ?? "Observed records"}</h2>
               </div>
-              <span className="record-count">{report?.fulfilments.length ?? 0} rows</span>
+              <span className="record-count">{report?.evidenceTable.rows.length ?? 0} rows</span>
             </div>
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>ID</th><th>PAYMENT</th><th>ORDER</th><th>AMOUNT</th></tr>
+                  <tr>
+                    {report?.evidenceTable.columns.map((column) => (
+                      <th key={column.key}>{column.label}</th>
+                    ))}
+                  </tr>
                 </thead>
                 <tbody>
-                  {report?.fulfilments.map((fulfilment, index) => (
-                    <tr className={index > 0 ? "duplicate-row" : ""} key={fulfilment.id}>
-                      <td><code>{fulfilment.id}</code>{index > 0 ? <span className="duplicate-tag">DUPLICATE</span> : null}</td>
-                      <td><code>{fulfilment.paymentId}</code></td>
-                      <td><code>{fulfilment.orderId}</code></td>
-                      <td>{formatMoney(fulfilment.amount)}</td>
+                  {report?.evidenceTable.rows.map((row) => (
+                    <tr className={row._tone === "danger" ? "duplicate-row" : row._tone === "success" ? "safe-row" : ""} key={String(row._id)}>
+                      {report.evidenceTable.columns.map((column, columnIndex) => (
+                        <td key={column.key}>
+                          {columnIndex < report.evidenceTable.columns.length - 1 ? (
+                            <code>{String(row[column.key])}</code>
+                          ) : String(row[column.key])}
+                          {columnIndex === 0 && row._badge ? (
+                            <span className={`duplicate-tag ${row._tone === "success" ? "safe" : ""}`}>
+                              {String(row._badge)}
+                            </span>
+                          ) : null}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>

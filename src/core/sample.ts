@@ -39,3 +39,46 @@ export const protectedMerchantSource = `router.post("/webhooks/razorpay", rawBod
 
   return res.sendStatus(200);
 });`;
+
+export const vulnerableStateSource = `router.post("/webhooks/razorpay", rawBody, async (req, res) => {
+  verifyRazorpaySignature(req.body, req.headers);
+  const payment = req.body.payload.payment.entity;
+
+  if (req.body.event === "payment.captured") {
+    await prisma.payment.update({
+      where: { razorpayPaymentId: payment.id },
+      data: { status: "CAPTURED" }
+    });
+  }
+
+  if (req.body.event === "payment.failed") {
+    await prisma.payment.update({
+      where: { razorpayPaymentId: payment.id },
+      data: { status: "FAILED" }
+    });
+  }
+
+  return res.sendStatus(200);
+});`;
+
+export const protectedStateSource = `router.post("/webhooks/razorpay", rawBody, async (req, res) => {
+  verifyRazorpaySignature(req.body, req.headers);
+  const payment = req.body.payload.payment.entity;
+  const current = await prisma.payment.findUnique({
+    where: { razorpayPaymentId: payment.id }
+  });
+
+  // CAPTURED is monotonic: an older failure cannot regress confirmed funds.
+  if (current.status === "CAPTURED" && req.body.event === "payment.failed") {
+    return res.sendStatus(200);
+  }
+
+  await prisma.payment.update({
+    where: { razorpayPaymentId: payment.id },
+    data: {
+      status: req.body.event === "payment.captured" ? "CAPTURED" : "FAILED"
+    }
+  });
+
+  return res.sendStatus(200);
+});`;

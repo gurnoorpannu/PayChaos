@@ -1,4 +1,5 @@
 export type ProtectionMode = "vulnerable" | "protected";
+export type ScenarioId = "duplicate-after-timeout" | "out-of-order-regression";
 
 export type TimelineKind =
   | "analysis"
@@ -9,11 +10,12 @@ export type TimelineKind =
 
 export interface PaymentWebhook {
   eventId: string;
-  event: "payment.captured";
+  event: "payment.captured" | "payment.failed";
   paymentId: string;
   orderId: string;
   amount: number;
   currency: "INR";
+  createdAt?: number;
 }
 
 export interface SignedWebhookRequest {
@@ -88,7 +90,7 @@ export interface InvariantResult {
 export interface CampaignReport {
   id: string;
   mode: ProtectionMode;
-  scenario: "duplicate-after-timeout";
+  scenario: ScenarioId;
   status: "passed" | "failed";
   startedAt: string;
   durationMs: number;
@@ -97,6 +99,11 @@ export interface CampaignReport {
   timeline: TimelineEntry[];
   invariants: InvariantResult[];
   fulfilments: Fulfilment[];
+  evidenceTable: {
+    title: string;
+    columns: Array<{ key: string; label: string }>;
+    rows: Array<Record<string, string | number | boolean>>;
+  };
   finding: {
     severity: "critical" | "none";
     title: string;
@@ -116,11 +123,12 @@ export interface OverviewResponse {
     environment: string;
     stack: string;
   };
-  scenario: {
+  scenarios: Array<{
     id: string;
+    scenario: ScenarioId;
     name: string;
     description: string;
     operators: string[];
-  };
+  }>;
   source: string;
 }

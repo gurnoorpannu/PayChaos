@@ -4,6 +4,7 @@ import type { PaymentWebhook, SignedWebhookRequest } from "./types.js";
 export const demoWebhookSecret = "paychaos_demo_webhook_secret_32_chars";
 
 export function createRazorpayPayload(webhook: PaymentWebhook): string {
+  const status = webhook.event === "payment.captured" ? "captured" : "failed";
   return JSON.stringify({
     entity: "event",
     account_id: "acc_paychaos_demo",
@@ -16,12 +17,12 @@ export function createRazorpayPayload(webhook: PaymentWebhook): string {
           entity: "payment",
           amount: webhook.amount,
           currency: webhook.currency,
-          status: "captured",
+          status,
           order_id: webhook.orderId
         }
       }
     },
-    created_at: 1_776_925_800
+    created_at: webhook.createdAt ?? 1_776_925_800
   });
 }
 
