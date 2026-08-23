@@ -69,9 +69,23 @@ Useful commands:
 ```bash
 npm test          # deterministic engine and signature tests
 npm run build     # typecheck and production client build
+npm run scan -- . # inspect a local repository without executing it
 npm run dev:api   # API only, on port 8787
 npm run dev:web   # dashboard only, on port 5173
 ```
+
+Run the scanner against the bundled comparison fixtures:
+
+```bash
+npm run scan -- ./fixtures/vulnerable-merchant
+npm run scan -- ./fixtures/protected-merchant
+npm run scan -- /path/to/your/project --json
+```
+
+The scanner walks bounded source files, skips dependencies, build output and
+symlinks, and never executes target code. It detects Razorpay webhook surfaces,
+signature boundaries, event-ID claims, database transactions, state guards and
+financial side effects. See [docs/SCANNING.md](docs/SCANNING.md).
 
 ## Demo flow
 
@@ -139,15 +153,17 @@ Use `"out-of-order-regression"` for the state-ordering campaign and
 src/
 ├── client/       React campaign console
 ├── core/         Analysis, Razorpay signing, merchant model, chaos engine
+├── cli/          Bounded local repository scanner
 └── server/       Local campaign API and production asset server
 docs/
 ├── ARCHITECTURE.md
-└── DEMO.md
+├── DEMO.md
+└── SCANNING.md
 ```
 
 ## Buildathon roadmap
 
-- Scan a user-selected Git repository instead of the bundled merchant fixture.
+- Add authenticated GitHub ingestion on top of the working local scanner.
 - Add a schema-constrained model provider for architecture mapping and
   hypothesis generation, retaining the local analyzer as a no-key fallback.
 - Add crash-after-commit and concurrent-capture campaigns.
@@ -159,7 +175,8 @@ docs/
 
 ## Safety
 
-PayChaos is a defensive test system. The current engine runs only against its
+PayChaos is a defensive test system. The scanner reads bounded local source
+files without executing them, and the current engine runs only against its
 local demo target. Production credentials, live payment actions, and arbitrary
 external endpoints are intentionally outside this slice.
 

@@ -16,9 +16,12 @@ The analyzer converts payment code into a compact architecture model:
 - idempotency keys and uniqueness constraints;
 - payment-state transitions.
 
-The local MVP performs this analysis against two bundled Express and Prisma
-handlers. A model-backed provider can later produce the same typed structure
-for unfamiliar repositories without changing the campaign engine.
+The local MVP includes a bounded repository scanner that maps TypeScript,
+JavaScript, Python, Java, Go, Ruby, PHP and C# source files without executing
+them. It detects Razorpay webhook surfaces and control boundaries before
+producing hypothesis candidates. A model-backed provider can later enrich the
+same typed structure for unfamiliar frameworks without changing the campaign
+engine.
 
 ### 2. Hypothesis generator
 
@@ -139,3 +142,7 @@ The intended runner lifecycle is:
 
 Repository code and logs are untrusted input. Generated commands must never be
 executed directly outside the sandbox boundary.
+
+The current scanner is intentionally read-only. It skips symlinks, dependency
+trees, generated output, oversized files, and repositories beyond explicit file
+and byte limits. See [SCANNING.md](SCANNING.md).
