@@ -14,8 +14,8 @@ lost, and the same webhook arrives again?”**
 
 ## What works today
 
-The current buildathon vertical slice demonstrates one complete reliability
-loop against a Razorpay-shaped integration:
+The current buildathon vertical slice demonstrates two complete reliability
+loops against a Razorpay-shaped integration:
 
 1. Map an Express and Prisma webhook handler.
 2. Detect a financial side effect without an event-level idempotency boundary.
@@ -28,6 +28,15 @@ loop against a Razorpay-shaped integration:
 
 The vulnerable implementation fails with two fulfilments for one payment. The
 protected implementation absorbs the duplicate and passes.
+
+The second campaign delivers `payment.captured` before releasing an older,
+delayed `payment.failed` event. A last-write-wins handler regresses the payment
+to `FAILED`; a monotonic state guard preserves `CAPTURED`.
+
+| Campaign | Fault sequence | Financial invariant |
+| --- | --- | --- |
+| `CHAOS-001` | Deliver → Commit → Timeout → Retry | One payment creates at most one fulfilment |
+| `CHAOS-002` | Capture → Delay → Stale failure → Inspect | A captured payment cannot regress to failed |
 
 ## The important boundary
 
@@ -115,11 +124,14 @@ runner.
 Campaign request:
 
 ```json
-{ "mode": "vulnerable" }
+{
+  "scenario": "duplicate-after-timeout",
+  "mode": "vulnerable"
+}
 ```
 
-Use `"protected"` to verify the control against the identical event and fault
-schedule.
+Use `"out-of-order-regression"` for the state-ordering campaign and
+`"protected"` to verify its control against the identical event schedule.
 
 ## Repository map
 
@@ -138,7 +150,7 @@ docs/
 - Scan a user-selected Git repository instead of the bundled merchant fixture.
 - Add a schema-constrained model provider for architecture mapping and
   hypothesis generation, retaining the local analyzer as a no-key fallback.
-- Add out-of-order state transitions and crash-after-commit campaigns.
+- Add crash-after-commit and concurrent-capture campaigns.
 - Run merchant applications in disposable, network-isolated sandboxes.
 - Capture database queries, logs, spans, and fulfilment side effects as evidence.
 - Generate a regression test and open a reviewable patch after user approval.

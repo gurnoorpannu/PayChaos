@@ -56,6 +56,17 @@ t+2.48  redeliver the same event ID
 t+3.24  evaluate financial invariant
 ```
 
+`CHAOS-002` currently runs:
+
+```text
+t+0.70  verify and deliver a newer payment.captured snapshot
+t+0.92  persist CAPTURED
+t+1.58  release a payment.failed event created 60 seconds earlier
+t+1.72  verify the authentic but stale failure
+t+1.94  apply or block the requested state regression
+t+2.26  evaluate the monotonic-state invariant
+```
+
 ### 4. Merchant adapter
 
 The adapter is the narrow interface between a campaign and the system under
@@ -72,11 +83,13 @@ Current invariant:
 ```text
 INV-001 exactly-once fulfilment
 count(fulfilments where payment_id = P) <= 1
+
+INV-002 captured state is monotonic
+captured(P) implies final_status(P) = CAPTURED
 ```
 
-Future invariants will cover state monotonicity, amount conservation, capture
-and refund bounds, order-to-payment cardinality, and once-only external side
-effects.
+Future invariants will cover amount conservation, capture and refund bounds,
+order-to-payment cardinality, and once-only external side effects.
 
 ### 6. Incident reconstruction
 

@@ -73,3 +73,13 @@ same incident after the fix.”
 
 > **AI can build a payment integration in minutes. PayChaos proves whether it
 > can survive production.**
+
+## Alternate campaign: out-of-order state
+
+If time remains, select `CHAOS-002` and keep the vulnerable baseline enabled.
+The campaign delivers a newer `payment.captured` snapshot and then releases an
+older `payment.failed` event. The last-write-wins handler ends in `FAILED`.
+
+Select **Verify fix** to replay the same two signed events against the monotonic
+state guard. `CAPTURED` remains the final state and the stale failure is retained
+as audit evidence without being applied.
