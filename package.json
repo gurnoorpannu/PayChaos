@@ -8,6 +8,8 @@
     "dev:api": "tsx watch src/server/index.ts",
     "dev:web": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:demo": "npm run demo:data && VITE_READ_ONLY_DEMO=true npm run build",
+    "demo:data": "tsx scripts/generateStaticDemo.ts",
     "scan": "tsx src/cli/scan.ts",
     "evaluate": "tsx src/cli/evaluate.ts",
     "start": "tsx src/server/index.ts",

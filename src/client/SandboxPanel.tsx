@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import type { SandboxRunResult } from "../sandbox/boundedRunner.js";
+import { apiFetch, readOnlyDemo } from "./api.js";
 
 interface SandboxStatus {
   available: boolean;
@@ -22,7 +23,7 @@ export function SandboxPanel() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/sandbox/status")
+    apiFetch("/api/sandbox/status")
       .then((response) => response.json() as Promise<SandboxStatus>)
       .then(setStatus)
       .catch(() => setStatus(null));
@@ -33,7 +34,7 @@ export function SandboxPanel() {
     setError(null);
     setResult(null);
     try {
-      const response = await fetch(url, init);
+      const response = await apiFetch(url, init);
       const payload = (await response.json()) as SandboxRunResult & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Sandbox execution failed.");
       setResult(payload);
@@ -83,7 +84,7 @@ export function SandboxPanel() {
         <div className="sandbox-buttons">
           <button onClick={() => void execute("/api/sandbox/demo/vulnerable")} disabled={running}>Run vulnerable target</button>
           <button onClick={() => void execute("/api/sandbox/demo/protected")} disabled={running}>Run protected target</button>
-          <button className="sandbox-select" onClick={() => inputRef.current?.click()} disabled={running}>Choose target.js</button>
+          <button className="sandbox-select" onClick={() => inputRef.current?.click()} disabled={running || readOnlyDemo}>{readOnlyDemo ? "Local API required" : "Choose target.js"}</button>
           <input ref={inputRef} className="visually-hidden" type="file" accept=".js,.mjs" onChange={(event) => void runSelectedTarget(event)} />
         </div>
       </div>

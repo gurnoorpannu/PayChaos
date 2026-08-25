@@ -9,6 +9,7 @@ import type {
 import { RepositoryPanel } from "./RepositoryPanel.js";
 import { RazorpayPanel } from "./RazorpayPanel.js";
 import { SandboxPanel } from "./SandboxPanel.js";
+import { apiFetch, readOnlyDemo } from "./api.js";
 
 const kindLabel: Record<TimelineEntry["kind"], string> = {
   analysis: "AI",
@@ -107,12 +108,12 @@ export function App() {
 
     try {
       const [campaignResponse, sourceResponse] = await Promise.all([
-        fetch("/api/campaigns", {
+        apiFetch("/api/campaigns", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ mode: nextMode, scenario: nextScenario })
         }),
-        fetch(`/api/source/${nextScenario}/${nextMode}`)
+        apiFetch(`/api/source/${nextScenario}/${nextMode}`)
       ]);
 
       if (!campaignResponse.ok || !sourceResponse.ok) {
@@ -139,7 +140,7 @@ export function App() {
   useEffect(() => {
     async function bootstrap() {
       try {
-        const response = await fetch("/api/overview");
+        const response = await apiFetch("/api/overview");
         if (!response.ok) throw new Error("Unable to load the target overview.");
         const payload = (await response.json()) as OverviewResponse;
         setOverview(payload);
@@ -175,7 +176,7 @@ export function App() {
     setRegressionError(null);
 
     try {
-      const response = await fetch(`/api/regressions/${scenarioId}`, { method: "POST" });
+      const response = await apiFetch(`/api/regressions/${scenarioId}`, { method: "POST" });
       const artifact = (await response.json()) as {
         fileName?: string;
         source?: string;
@@ -233,12 +234,18 @@ export function App() {
           <span className="live-dot" />
           {overview?.target.name ?? "Connecting…"}
           <span className="target-pill__mode">
-            {report?.execution.kind === "live-http" ? "LIVE HTTP" : "MODEL"}
+            {readOnlyDemo ? "HOSTED REPLAY" : report?.execution.kind === "live-http" ? "LIVE HTTP" : "MODEL"}
           </span>
         </div>
       </header>
 
       <main id="top">
+        {readOnlyDemo ? (
+          <div className="read-only-banner">
+            <strong>HOSTED READ-ONLY DEMO</strong>
+            <span>Campaigns replay pre-verified evidence. Clone the repository to execute live targets.</span>
+          </div>
+        ) : null}
         <section className="hero">
           <div>
             <div className="eyebrow"><Icon name="spark" size={14} /> AUTONOMOUS RELIABILITY CAMPAIGN</div>

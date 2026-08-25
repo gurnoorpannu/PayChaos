@@ -3,6 +3,7 @@ import type {
   RazorpayConnectorStatus,
   RazorpayDiagnosticResult
 } from "../connectors/razorpayTestMode.js";
+import { apiFetch } from "./api.js";
 
 interface ErrorPayload {
   error?: string;
@@ -22,7 +23,7 @@ export function RazorpayPanel() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/razorpay/status")
+    apiFetch("/api/razorpay/status")
       .then(async (response) => {
         if (!response.ok) throw new Error("Connector status is unavailable.");
         return response.json() as Promise<RazorpayConnectorStatus>;
@@ -45,7 +46,7 @@ export function RazorpayPanel() {
     setResult(null);
 
     try {
-      const response = await fetch("/api/razorpay/test-order", { method: "POST" });
+      const response = await apiFetch("/api/razorpay/test-order", { method: "POST" });
       const payload = (await response.json()) as RazorpayDiagnosticResult & ErrorPayload;
       if (!response.ok) throw new Error(payload.error ?? "Diagnostic order failed.");
       setResult(payload);

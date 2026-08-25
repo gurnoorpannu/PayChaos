@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .env
+public/demo-api/
 .DS_Store
 coverage/
 *.log

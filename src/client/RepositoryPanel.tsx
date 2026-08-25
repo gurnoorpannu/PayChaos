@@ -5,6 +5,7 @@ import type {
 } from "../core/intelligence.js";
 import type { RepositoryScanResult } from "../core/repositoryScanner.js";
 import type { ScenarioId } from "../core/types.js";
+import { apiFetch, readOnlyDemo } from "./api.js";
 
 interface RepositoryResponse {
   scanId: string;
@@ -36,7 +37,7 @@ export function RepositoryPanel({ onRunScenario }: RepositoryPanelProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/intelligence/status")
+    apiFetch("/api/intelligence/status")
       .then((response) => response.json() as Promise<IntelligenceStatus>)
       .then(setStatus)
       .catch(() => setStatus(null));
@@ -46,7 +47,7 @@ export function RepositoryPanel({ onRunScenario }: RepositoryPanelProps) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(url, init);
+      const response = await apiFetch(url, init);
       const payload = (await response.json()) as RepositoryResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Repository analysis failed.");
       setResult(payload);
@@ -90,7 +91,7 @@ export function RepositoryPanel({ onRunScenario }: RepositoryPanelProps) {
     setEnriching(true);
     setError(null);
     try {
-      const response = await fetch("/api/intelligence/hypothesize", {
+      const response = await apiFetch("/api/intelligence/hypothesize", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ scanId: result.scanId })
@@ -146,8 +147,8 @@ export function RepositoryPanel({ onRunScenario }: RepositoryPanelProps) {
           <button onClick={() => void scanDemo("race")} disabled={loading}>
             Scan race demo
           </button>
-          <button className="repository-upload" onClick={() => inputRef.current?.click()} disabled={loading}>
-            Choose local repository
+          <button className="repository-upload" onClick={() => inputRef.current?.click()} disabled={loading || readOnlyDemo}>
+            {readOnlyDemo ? "Local API required" : "Choose local repository"}
           </button>
           <input
             {...directoryAttributes}
@@ -203,7 +204,9 @@ export function RepositoryPanel({ onRunScenario }: RepositoryPanelProps) {
               <span className="privacy-note">
                 {result.intelligence.provider === "openai"
                   ? `${result.intelligence.model} · source stayed local`
-                  : "Add OPENAI_API_KEY for optional AI enrichment"}
+                  : readOnlyDemo
+                    ? "Hosted replay · model calls disabled"
+                    : "Add OPENAI_API_KEY for optional AI enrichment"}
               </span>
             )}
           </div>
