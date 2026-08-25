@@ -285,6 +285,36 @@ td code { color: var(--blue); font-size: 9px; }
 .no-hypotheses strong { color: var(--green); font-size: 12px; }
 .no-hypotheses p { color: var(--subtle); font-size: 10px; margin: 6px 0 0; }
 
+.razorpay-panel { margin-top: 16px; overflow: hidden; }
+.razorpay-heading { min-height: 88px; }
+.razorpay-state { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); background: #0a0c0f; border-radius: 6px; padding: 8px 10px; }
+.razorpay-state > div { display: flex; flex-direction: column; gap: 3px; }
+.razorpay-state strong { font-family: var(--mono); font-size: 8px; letter-spacing: .08em; }
+.razorpay-state small { color: var(--subtle); font-family: var(--mono); font-size: 8px; }
+.razorpay-state.test { border-color: rgba(94,230,168,.3); }
+.razorpay-state.test .provider-dot { background: var(--green); box-shadow: 0 0 0 4px rgba(94,230,168,.08); }
+.razorpay-state.rejected { border-color: rgba(255,93,98,.35); }
+.razorpay-state.rejected .provider-dot { background: var(--danger); box-shadow: 0 0 0 4px rgba(255,93,98,.08); }
+.razorpay-body { min-height: 122px; display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 22px; }
+.razorpay-copy { min-width: 0; }
+.razorpay-copy > p { margin: 0 0 14px; color: #c0c4cb; font-size: 11px; }
+.razorpay-copy > small { display: block; margin-top: 13px; color: var(--subtle); font-size: 9px; }
+.razorpay-copy code { color: var(--blue); font-size: 8px; }
+.connector-flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.connector-flow span { border: 1px solid var(--line); background: #090b0d; color: #9ba1ac; border-radius: 4px; padding: 7px 9px; font-family: var(--mono); font-size: 7px; letter-spacing: .06em; }
+.connector-flow i { color: var(--lime); font-style: normal; }
+.razorpay-order-button { flex: 0 0 auto; border: 1px solid rgba(199,255,67,.35); background: var(--lime-soft); color: var(--lime); border-radius: 6px; padding: 11px 14px; font-size: 10px; font-weight: 750; }
+.razorpay-order-button:disabled { border-color: var(--line); background: #0a0c0f; color: var(--subtle); cursor: not-allowed; }
+.razorpay-result { display: grid; grid-template-columns: 1.3fr 1.7fr repeat(3, 1fr); border-top: 1px solid var(--line-soft); background: #0a0c0f; }
+.razorpay-result > div { min-width: 0; min-height: 86px; display: flex; flex-direction: column; justify-content: center; gap: 7px; padding: 16px 18px; border-right: 1px solid var(--line-soft); }
+.razorpay-result > div:last-child { border-right: 0; }
+.razorpay-result span { color: var(--subtle); font-family: var(--mono); font-size: 7px; letter-spacing: .08em; }
+.razorpay-result strong { color: #d3d6dc; font-size: 12px; }
+.razorpay-result code { overflow: hidden; color: var(--blue); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.razorpay-result .razorpay-proof strong { color: var(--green); font-family: var(--mono); }
+.razorpay-result small { color: var(--subtle); font-size: 8px; }
+.razorpay-footnote { min-height: 40px; display: flex; align-items: center; padding: 0 22px; border-top: 1px solid var(--line-soft); background: #0a0c0f; color: var(--subtle); font-family: var(--mono); font-size: 8px; }
+
 .skeleton-stack { width: 100%; display: flex; flex-direction: column; gap: 10px; }
 .timeline-panel > .skeleton-stack, .architecture-panel > .skeleton-stack { padding: 30px; }
 .skeleton { height: 12px; width: 68%; border-radius: 4px; background: linear-gradient(90deg, #171a20, #222630, #171a20); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
@@ -331,7 +361,9 @@ footer > span { margin-left: auto; font-family: var(--mono); font-size: 8px; let
   .fix-callout button { margin-left: 50px; }
   .evidence-strip { align-items: flex-start; flex-wrap: wrap; }
   .evidence-strip strong { width: 100%; margin-left: 30px; }
-  .repository-heading, .repository-actions, .intelligence-summary { align-items: flex-start; flex-direction: column; }
+  .repository-heading, .repository-actions, .intelligence-summary, .razorpay-heading, .razorpay-body { align-items: flex-start; flex-direction: column; }
+  .razorpay-result { grid-template-columns: 1fr 1fr; }
+  .razorpay-result > div { border-bottom: 1px solid var(--line-soft); }
   .repository-buttons { justify-content: flex-start; }
   .scan-summary { grid-template-columns: 1fr 1fr; }
   .static-score { min-height: 94px; }
