@@ -14,7 +14,7 @@ lost, and the same webhook arrives again?”**
 
 ## What works today
 
-The current buildathon vertical slice demonstrates two complete reliability
+The current buildathon vertical slice demonstrates three complete reliability
 loops against a Razorpay-shaped integration:
 
 1. Map an Express and Prisma webhook handler.
@@ -33,10 +33,17 @@ The second campaign delivers `payment.captured` before releasing an older,
 delayed `payment.failed` event. A last-write-wins handler regresses the payment
 to `FAILED`; a monotonic state guard preserves `CAPTURED`.
 
+The third campaign kills the merchant after its database transaction commits
+but before shipment dispatch. Event deduplication prevents duplicate local work
+on retry, yet also makes the missing shipment permanent. The protected version
+atomically records a uniquely keyed outbox intent, which a restarted worker
+recovers without creating a second fulfilment.
+
 | Campaign | Fault sequence | Financial invariant |
 | --- | --- | --- |
 | `CHAOS-001` | Deliver → Commit → Timeout → Retry | One payment creates at most one fulfilment |
 | `CHAOS-002` | Capture → Delay → Stale failure → Inspect | A captured payment cannot regress to failed |
+| `CHAOS-003` | Commit → Crash → Restart → Recover | One captured order creates exactly one shipment job |
 
 ## The important boundary
 
@@ -79,13 +86,16 @@ Run the scanner against the bundled comparison fixtures:
 ```bash
 npm run scan -- ./fixtures/vulnerable-merchant
 npm run scan -- ./fixtures/protected-merchant
+npm run scan -- ./fixtures/crash-vulnerable
+npm run scan -- ./fixtures/crash-protected
 npm run scan -- /path/to/your/project --json
 ```
 
 The scanner walks bounded source files, skips dependencies, build output and
 symlinks, and never executes target code. It detects Razorpay webhook surfaces,
-signature boundaries, event-ID claims, database transactions, state guards and
-financial side effects. See [docs/SCANNING.md](docs/SCANNING.md).
+signature boundaries, event-ID claims, database transactions, state guards,
+transactional outboxes and financial side effects. See
+[docs/SCANNING.md](docs/SCANNING.md).
 
 The same scanner is available in the dashboard. Use either bundled fixture or
 choose a local repository directory; supported source files are read by the
@@ -167,8 +177,9 @@ Campaign request:
 }
 ```
 
-Use `"out-of-order-regression"` for the state-ordering campaign and
-`"protected"` to verify its control against the identical event schedule.
+Use `"out-of-order-regression"` for the state-ordering campaign,
+`"crash-before-side-effect"` for crash recovery, and `"protected"` to verify
+the relevant control against the identical event schedule.
 
 ## Repository map
 
@@ -189,7 +200,7 @@ docs/
 
 - Add authenticated GitHub ingestion on top of the working local scanner.
 - Evaluate the schema-constrained model provider across the vulnerability corpus.
-- Add crash-after-commit and concurrent-capture campaigns.
+- Add concurrent-capture and partial-refund campaigns.
 - Run merchant applications in disposable, network-isolated sandboxes.
 - Capture database queries, logs, spans, and fulfilment side effects as evidence.
 - Generate a regression test and open a reviewable patch after user approval.

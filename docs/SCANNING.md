@@ -28,7 +28,7 @@ Static score  54/100
 src/razorpay-webhook.ts:1  /webhooks/razorpay
   events       payment.captured, payment.failed
   side effects create fulfilment, update payment state, queue shipment
-  controls     signature=true event-id=false transaction=false monotonic=false
+  controls     signature=true event-id=false transaction=false monotonic=false outbox=false
 
 2 hypothesis candidates
   [CRITICAL] Captured payment can repeat an irreversible side effect
@@ -49,13 +49,15 @@ The scanner currently extracts:
 - `x-razorpay-event-id` deduplication claims;
 - transaction boundaries;
 - monotonic captured-state guards;
+- transactional outbox writes and restart-safe workers;
 - fulfilment, order, payment-state, shipment and notification side effects.
 
 Those signals generate bounded candidates for:
 
 - forged-webhook testing;
 - duplicate delivery after a post-commit timeout;
-- out-of-order payment-state regression.
+- out-of-order payment-state regression;
+- a post-commit crash before an external shipment side effect.
 
 ## Bounds and exclusions
 

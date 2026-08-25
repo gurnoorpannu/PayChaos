@@ -83,3 +83,21 @@ older `payment.failed` event. The last-write-wins handler ends in `FAILED`.
 Select **Verify fix** to replay the same two signed events against the monotonic
 state guard. `CAPTURED` remains the final state and the stale failure is retained
 as audit evidence without being applied.
+
+## Alternate campaign: crash recovery
+
+Select `CHAOS-003` to demonstrate a failure that ordinary idempotency does not
+solve. The vulnerable handler commits its event claim and fulfilment, then the
+merchant process exits with code 137 before `queueShipment` completes. After
+restart, the identical event retry is correctly deduplicated—but the paid order
+still has zero shipment jobs.
+
+Pause on **Crash recovery checkpoints** and the `STRANDED` row. Then select
+**Protected fix**. PayChaos replays the same crash window, but this handler wrote
+a unique shipment intent to a transactional outbox beside the fulfilment. The
+restarted worker dispatches it, the retry creates no duplicate, and `INV-003`
+observes exactly one shipment job.
+
+To connect repository understanding to execution, choose **Scan crash-gap demo**
+in the Repository section. The grounded analyzer identifies the missing durable
+handoff and its generated hypothesis launches `CHAOS-003` directly.

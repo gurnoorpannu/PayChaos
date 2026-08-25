@@ -14,7 +14,8 @@ The analyzer converts payment code into a compact architecture model:
 - database writes and irreversible business side effects;
 - transaction boundaries;
 - idempotency keys and uniqueness constraints;
-- payment-state transitions.
+- payment-state transitions;
+- durable outbox handoffs around external side effects.
 
 The local MVP includes a bounded repository scanner that maps TypeScript,
 JavaScript, Python, Java, Go, Ruby, PHP and C# source files without executing
@@ -70,6 +71,18 @@ t+1.94  apply or block the requested state regression
 t+2.26  evaluate the monotonic-state invariant
 ```
 
+`CHAOS-003` currently runs:
+
+```text
+t+0.68  verify and deliver payment.captured
+t+0.90  commit the event claim and local fulfilment
+t+1.05  terminate the process before shipment dispatch
+t+1.64  restart the merchant and outbox worker
+t+1.88  recover the durable intent, or prove that none exists
+t+2.30  retry the identical event ID
+t+2.78  evaluate the shipment-job invariant
+```
+
 ### 4. Merchant adapter
 
 The adapter is the narrow interface between a campaign and the system under
@@ -89,10 +102,13 @@ count(fulfilments where payment_id = P) <= 1
 
 INV-002 captured state is monotonic
 captured(P) implies final_status(P) = CAPTURED
+
+INV-003 durable fulfilment dispatch
+captured(P) implies count(shipment_jobs(order(P))) = 1
 ```
 
 Future invariants will cover amount conservation, capture and refund bounds,
-order-to-payment cardinality, and once-only external side effects.
+order-to-payment cardinality, and concurrent requests.
 
 ### 6. Incident reconstruction
 

@@ -63,9 +63,10 @@ hypotheses[]
   id, title, scenario, evidence[], confidence, financialImpact
 ```
 
-Scenario values are constrained to campaign registry identifiers. Unsupported
-campaigns can be prioritized but cannot execute until a deterministic operator
-exists.
+Scenario values are constrained to known identifiers. Duplicate delivery,
+out-of-order state, and crash recovery map directly to deterministic campaign
+operators; forged-webhook analysis remains a prioritized candidate until its
+operator is implemented.
 
 ## Failure behavior
 
