@@ -7,7 +7,7 @@ and pushed.
 | Phase | Outcome | Status |
 | --- | --- | --- |
 | 1. Live execution | Attack a running HTTP merchant and evaluate observed state | Complete |
-| 2. Razorpay Test Mode | Verify real test orders, payments and connector health | Pending |
+| 2. Razorpay Test Mode | Verify a real test order and connector health | Complete |
 | 3. Regression generation | Emit and execute a test from a proven incident | Pending |
 | 4. Repository sandbox | Run a selected Node target with bounded capabilities | Pending |
 | 5. Submission hardening | Evaluation corpus, hosted demo and final walkthrough | Pending |
@@ -36,13 +36,20 @@ dashboard.
 
 ## Phase 2 — Razorpay Test Mode
 
-Planned exit criteria:
+The provider boundary is intentionally smaller than the chaos engine:
 
-- validate credential presence without exposing key material;
-- fetch or create a bounded test-mode order through the official API;
-- normalize the Razorpay response into campaign fixtures;
-- expose connector status and a safe diagnostic action;
-- retain the fully local fallback when credentials are absent.
+1. Read credentials only inside the server process.
+2. Reject every key that does not start with `rzp_test_` before a request runs.
+3. Create a fixed ₹5 INR order only after an explicit dashboard action.
+4. Fetch that order from Razorpay by ID.
+5. Compare ID, amount, currency and receipt before returning verified evidence.
+6. Normalize the response without serializing credentials or authorization.
+
+The status route performs no provider call. Missing credentials retain the
+complete local demo, while provider error bodies are not echoed into responses.
+Mock contract tests cover authentication, the create/fetch sequence, bounded
+receipt metadata, live-key rejection, mismatch handling and secret redaction.
+See [RAZORPAY_TEST_MODE.md](RAZORPAY_TEST_MODE.md).
 
 ## Phase 3 — Regression generation
 

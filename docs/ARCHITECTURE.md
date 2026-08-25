@@ -166,6 +166,15 @@ flowchart TB
 The probabilistic plane may prioritize or explain. The deterministic plane
 alone decides pass or fail.
 
+## Razorpay provider boundary
+
+The optional connector is a diagnostic input, not an oracle. It creates a fixed
+₹5 Test Mode order only after explicit user action, fetches the same order by
+ID, and verifies stable fields before normalizing it. It cannot capture a
+payment and rejects every key outside the `rzp_test_` namespace before network
+I/O. Credentials remain server-side and are excluded from logs, responses and
+browser bundles.
+
 ## Intelligence provider boundary
 
 Repository analysis is a two-step, consent-preserving flow:

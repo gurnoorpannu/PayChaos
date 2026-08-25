@@ -50,6 +50,12 @@ is not atomic. Two workers both read “event not processed” before either wri
 then create duplicate fulfilments four virtual milliseconds apart. A unique
 event claim inside the fulfilment transaction serializes the protected replay.
 
+An optional Razorpay Test Mode connector now verifies the real provider API
+boundary. After an explicit click, it creates one fixed ₹5 test order, fetches
+it by ID, and compares the normalized evidence. Live keys are rejected before
+network I/O and the fully local experience remains available without
+credentials. See [docs/RAZORPAY_TEST_MODE.md](docs/RAZORPAY_TEST_MODE.md).
+
 | Campaign | Fault sequence | Financial invariant |
 | --- | --- | --- |
 | `CHAOS-001` | Deliver → Commit → Timeout → Retry | One payment creates at most one fulfilment |
@@ -130,6 +136,13 @@ The AI request uses the OpenAI Responses API with strict JSON Schema output and
 absolute repository path—and runs only after **Send scan metadata to OpenAI** is
 clicked. See [docs/INTELLIGENCE.md](docs/INTELLIGENCE.md).
 
+### Optional Razorpay Test Mode verification
+
+Add `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` from Razorpay Test Mode to your
+local `.env`, restart the API, then use the connector panel. PayChaos accepts
+only `rzp_test_` keys and creates an order without authorizing or capturing a
+payment. Credentials never enter the client bundle.
+
 ## Demo flow
 
 The dashboard starts on the **Vulnerable baseline** and runs `CHAOS-001`:
@@ -176,11 +189,13 @@ runner.
 | `GET` | `/api/health` | Runtime health |
 | `GET` | `/api/overview` | Demo target and scenario metadata |
 | `GET` | `/api/intelligence/status` | Local or optional model-provider status |
+| `GET` | `/api/razorpay/status` | Safe Test Mode connector status; no provider call |
 | `GET` | `/api/source/:scenario/:mode` | Scenario-specific vulnerable or protected source evidence |
 | `POST` | `/api/campaigns` | Run the deterministic campaign |
 | `POST` | `/api/repositories/demo/:mode` | Scan a bundled fixture repository |
 | `POST` | `/api/repositories/analyze` | Analyze bounded browser-selected files |
 | `POST` | `/api/intelligence/hypothesize` | Explicitly enrich a retained scan |
+| `POST` | `/api/razorpay/test-order` | Explicitly create, fetch and verify one ₹5 test order |
 
 Campaign request:
 
@@ -201,6 +216,7 @@ verify the relevant control against the identical event schedule.
 ```text
 src/
 ├── client/       React campaign console
+├── connectors/   Razorpay Test Mode provider boundary
 ├── core/         Analysis, Razorpay signing, merchant model, chaos engine
 ├── cli/          Bounded local repository scanner
 └── server/       Local campaign API and production asset server
@@ -209,25 +225,26 @@ docs/
 ├── DEMO.md
 ├── DELIVERY_PLAN.md
 ├── INTELLIGENCE.md
+├── RAZORPAY_TEST_MODE.md
 └── SCANNING.md
 ```
 
 ## Delivery roadmap
 
-Phase 1, live HTTP merchant execution, is complete. The remaining work is
+Phases 1 and 2—live HTTP execution and the safe Razorpay Test Mode connector—are complete. The remaining work is
 sequenced in [docs/DELIVERY_PLAN.md](docs/DELIVERY_PLAN.md).
 
-1. Connect Razorpay Test Mode safely.
-2. Generate executable regression tests from proven incidents.
-3. Run selected Node targets inside a bounded disposable sandbox.
-4. Evaluate, deploy and harden the final submission.
+1. Generate executable regression tests from proven incidents.
+2. Run selected Node targets inside a bounded disposable sandbox.
+3. Evaluate, deploy and harden the final submission.
 
 ## Safety
 
 PayChaos is a defensive test system. The scanner reads bounded local source
-files without executing them, and the current engine runs only against its
-local demo target. Production credentials, live payment actions, and arbitrary
-external endpoints are intentionally outside this slice.
+files without executing them. The engine attacks its local demo target, while
+the optional provider connector is limited to fixed Test Mode order creation
+and verification. Production credentials, live payment actions, and arbitrary
+external endpoints are rejected or outside the supported boundary.
 
 ---
 
