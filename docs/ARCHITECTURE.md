@@ -106,9 +106,10 @@ schedule.
 
 The other campaigns remain deterministic in-process merchant models. Every
 campaign report identifies its execution kind, target, transport, request count
-and state-read count so simulated and live evidence cannot be confused. A later
-sandbox adapter will apply the live protocol to selected repository code with
-explicit process, filesystem, network and time bounds.
+and state-read count so simulated and live evidence cannot be confused. The
+bounded Node adapter now applies the live protocol to a deliberately narrow,
+selected JavaScript target with explicit process, filesystem, network, memory,
+output and time bounds.
 
 ### 5. Invariant oracle
 
@@ -188,9 +189,21 @@ model input. The Responses API request uses strict JSON Schema output and
 `store: false`. Provider failure falls back to grounded local rules instead of
 blocking deterministic campaigns.
 
-## Moving from the MVP to repository execution
+## Bounded repository execution
 
-The intended runner lifecycle is:
+The current runner accepts a synchronous `globalThis.paychaosTarget` contract,
+copies only selected JavaScript files, and executes the entry inside a
+permission-restricted child plus capability-minimal VM context. The target has
+no network capability; a trusted parent-owned gateway supplies HTTP transport.
+Every run ends by killing the child and deleting the disposable workspace.
+
+This is intentionally narrower than executing a repository's install or test
+scripts. It demonstrates the adapter and evidence boundary without pretending a
+language VM alone is hostile multi-tenant isolation. See [SANDBOX.md](SANDBOX.md).
+
+## Production repository execution
+
+The production runner lifecycle is:
 
 1. Clone a user-authorized repository at an immutable commit.
 2. Detect its runtime, payment surface, and test command without executing code.

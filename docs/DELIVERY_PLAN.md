@@ -9,7 +9,7 @@ and pushed.
 | 1. Live execution | Attack a running HTTP merchant and evaluate observed state | Complete |
 | 2. Razorpay Test Mode | Verify a real test order and connector health | Complete |
 | 3. Regression generation | Emit and execute a test from a proven incident | Complete |
-| 4. Repository sandbox | Run a selected Node target with bounded capabilities | Pending |
+| 4. Repository sandbox | Run a selected Node target with bounded capabilities | Complete |
 | 5. Submission hardening | Evaluation corpus, hosted demo and final walkthrough | Pending |
 
 ## Phase 1 — Live execution
@@ -67,13 +67,19 @@ suite and executes both paths through live loopback HTTP. See
 
 ## Phase 4 — Repository sandbox
 
-Planned exit criteria:
+The dashboard can run a bundled or browser-selected JavaScript target through a
+narrow synchronous `handle()`/`snapshot()` contract. Selected sources are
+validated and copied into a disposable directory. A separate Node child gets a
+64 MB heap, permission-model filesystem restrictions, no child network access,
+a capability-minimal VM context, 100 ms per-operation CPU limits, bounded input
+and output, and a three-second wall deadline.
 
-- support a narrowly defined Node target contract;
-- copy selected sources into a disposable directory;
-- apply CPU, time, file and network bounds;
-- start the target and collect HTTP plus state evidence;
-- always tear down the target and temporary workspace.
+A trusted parent-owned loopback gateway delivers two real signed HTTP requests
+and performs a state read. Result evidence distinguishes target behavior from
+containment metadata. Cleanup kills the child, closes the server and removes the
+temporary workspace in `finally`; success and adversarial failure paths are
+covered by tests. See [SANDBOX.md](SANDBOX.md) for the contract and production
+isolation caveat.
 
 ## Phase 5 — Submission hardening
 

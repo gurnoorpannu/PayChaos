@@ -125,3 +125,14 @@ remain identical.
 Choose **Scan race demo** in the Repository section to show how PayChaos
 distinguishes a hopeful read-before-write check from an atomic idempotency
 boundary and launches the matching deterministic campaign.
+
+## Bounded target proof
+
+In the **Bounded repository execution** panel, run the vulnerable target. Point
+out the two HTTP requests, one state read, failed `INV-001`, denied child
+network, and removed disposable filesystem. Then run the protected target: the
+same signed timeout-and-retry sequence observes one fulfilment and passes.
+
+The target is real selected code, but the execution contract is intentionally
+narrow. PayChaos does not run package scripts or claim that a language VM alone
+is production-grade multi-tenant isolation.

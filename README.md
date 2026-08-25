@@ -63,6 +63,13 @@ on the protected adapter. The included `CHAOS-001` regression runs against the
 live HTTP target in the regular test suite. See
 [docs/REGRESSIONS.md](docs/REGRESSIONS.md).
 
+The bounded Node runner can copy and attack a selected JavaScript payment
+target through a tiny synchronous contract. It places the target in a separate,
+permission-restricted 64 MB child with no child network, applies CPU and wall
+timeouts, exposes only a parent-owned loopback gateway, captures deterministic
+state evidence, and destroys the workspace after every run. See
+[docs/SANDBOX.md](docs/SANDBOX.md) for its precise security scope.
+
 | Campaign | Fault sequence | Financial invariant |
 | --- | --- | --- |
 | `CHAOS-001` | Deliver → Commit → Timeout → Retry | One payment creates at most one fulfilment |
@@ -197,6 +204,7 @@ runner.
 | `GET` | `/api/overview` | Demo target and scenario metadata |
 | `GET` | `/api/intelligence/status` | Local or optional model-provider status |
 | `GET` | `/api/razorpay/status` | Safe Test Mode connector status; no provider call |
+| `GET` | `/api/sandbox/status` | Target contract and enforced execution bounds |
 | `GET` | `/api/source/:scenario/:mode` | Scenario-specific vulnerable or protected source evidence |
 | `POST` | `/api/campaigns` | Run the deterministic campaign |
 | `POST` | `/api/repositories/demo/:mode` | Scan a bundled fixture repository |
@@ -204,6 +212,8 @@ runner.
 | `POST` | `/api/intelligence/hypothesize` | Explicitly enrich a retained scan |
 | `POST` | `/api/razorpay/test-order` | Explicitly create, fetch and verify one ₹5 test order |
 | `POST` | `/api/regressions/:scenario` | Generate a checksummed standalone Vitest regression |
+| `POST` | `/api/sandbox/demo/:mode` | Execute a bounded vulnerable or protected target |
+| `POST` | `/api/sandbox/run` | Execute browser-selected JavaScript under the narrow contract |
 
 Campaign request:
 
@@ -225,6 +235,7 @@ verify the relevant control against the identical event schedule.
 src/
 ├── client/       React campaign console
 ├── connectors/   Razorpay Test Mode provider boundary
+├── sandbox/      Permission-restricted Node target runner
 ├── core/         Analysis, Razorpay signing, merchant model, chaos engine
 ├── cli/          Bounded local repository scanner
 └── server/       Local campaign API and production asset server
@@ -235,17 +246,18 @@ docs/
 ├── INTELLIGENCE.md
 ├── RAZORPAY_TEST_MODE.md
 ├── REGRESSIONS.md
+├── SANDBOX.md
 └── SCANNING.md
 ```
 
 ## Delivery roadmap
 
-Phases 1 through 3—live HTTP execution, the safe Razorpay connector, and
-executable regression generation—are complete. The remaining work is
+Phases 1 through 4—live HTTP execution, the safe Razorpay connector, executable
+regressions, and bounded Node target execution—are complete. The remaining work
+is submission hardening, evaluation, and deployment readiness.
 sequenced in [docs/DELIVERY_PLAN.md](docs/DELIVERY_PLAN.md).
 
-1. Run selected Node targets inside a bounded disposable sandbox.
-2. Evaluate, deploy and harden the final submission.
+1. Evaluate, deploy and harden the final submission.
 
 ## Safety
 
