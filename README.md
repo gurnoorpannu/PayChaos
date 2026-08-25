@@ -56,6 +56,13 @@ it by ID, and compares the normalized evidence. Live keys are rejected before
 network I/O and the fully local experience remains available without
 credentials. See [docs/RAZORPAY_TEST_MODE.md](docs/RAZORPAY_TEST_MODE.md).
 
+Every proven failure can also be exported as a standalone Vitest regression.
+The artifact preserves the signed raw payload, event ID, schedule and financial
+invariant, then requires both reproduction on the vulnerable adapter and a pass
+on the protected adapter. The included `CHAOS-001` regression runs against the
+live HTTP target in the regular test suite. See
+[docs/REGRESSIONS.md](docs/REGRESSIONS.md).
+
 | Campaign | Fault sequence | Financial invariant |
 | --- | --- | --- |
 | `CHAOS-001` | Deliver → Commit → Timeout → Retry | One payment creates at most one fulfilment |
@@ -196,6 +203,7 @@ runner.
 | `POST` | `/api/repositories/analyze` | Analyze bounded browser-selected files |
 | `POST` | `/api/intelligence/hypothesize` | Explicitly enrich a retained scan |
 | `POST` | `/api/razorpay/test-order` | Explicitly create, fetch and verify one ₹5 test order |
+| `POST` | `/api/regressions/:scenario` | Generate a checksummed standalone Vitest regression |
 
 Campaign request:
 
@@ -226,17 +234,18 @@ docs/
 ├── DELIVERY_PLAN.md
 ├── INTELLIGENCE.md
 ├── RAZORPAY_TEST_MODE.md
+├── REGRESSIONS.md
 └── SCANNING.md
 ```
 
 ## Delivery roadmap
 
-Phases 1 and 2—live HTTP execution and the safe Razorpay Test Mode connector—are complete. The remaining work is
+Phases 1 through 3—live HTTP execution, the safe Razorpay connector, and
+executable regression generation—are complete. The remaining work is
 sequenced in [docs/DELIVERY_PLAN.md](docs/DELIVERY_PLAN.md).
 
-1. Generate executable regression tests from proven incidents.
-2. Run selected Node targets inside a bounded disposable sandbox.
-3. Evaluate, deploy and harden the final submission.
+1. Run selected Node targets inside a bounded disposable sandbox.
+2. Evaluate, deploy and harden the final submission.
 
 ## Safety
 

@@ -8,7 +8,7 @@ and pushed.
 | --- | --- | --- |
 | 1. Live execution | Attack a running HTTP merchant and evaluate observed state | Complete |
 | 2. Razorpay Test Mode | Verify a real test order and connector health | Complete |
-| 3. Regression generation | Emit and execute a test from a proven incident | Pending |
+| 3. Regression generation | Emit and execute a test from a proven incident | Complete |
 | 4. Repository sandbox | Run a selected Node target with bounded capabilities | Pending |
 | 5. Submission hardening | Evaluation corpus, hosted demo and final walkthrough | Pending |
 
@@ -53,12 +53,17 @@ See [RAZORPAY_TEST_MODE.md](RAZORPAY_TEST_MODE.md).
 
 ## Phase 3 — Regression generation
 
-Planned exit criteria:
+Every failed campaign exposes a **Download regression** action. PayChaos reruns
+the vulnerable adapter to ground the artifact, then emits standalone Vitest
+source with a SHA-256 checksum. The schema-versioned fixture retains every
+signed raw payload and event ID, the exact fault plan and virtual schedule, and
+the deterministic invariant plus vulnerable observation.
 
-- convert a proven incident into a standalone Vitest artifact;
-- preserve payload, event ID, schedule and invariant;
-- execute the generated test against vulnerable and protected adapters;
-- download the artifact from the dashboard.
+The generated test requires both behaviors: the vulnerable adapter must still
+reproduce the incident and the protected adapter must pass the identical replay.
+The repository's checked-in `CHAOS-001` artifact is included in the normal test
+suite and executes both paths through live loopback HTTP. See
+[REGRESSIONS.md](REGRESSIONS.md).
 
 ## Phase 4 — Repository sandbox
 

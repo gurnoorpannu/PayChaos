@@ -53,7 +53,11 @@ Show **Critical finding**.
 
 “The incident report connects the failure to the exact source line, explains
 the post-commit timeout, quantifies the exposure, and recommends an atomic
-claim on `x-razorpay-event-id`.”
+claim on `x-razorpay-event-id`."
+
+Choose **Download regression**. The emitted Vitest file retains this signed
+payload, event ID, timeout schedule and `INV-001`, then exercises both target
+implementations.
 
 Select **Verify fix**.
 
