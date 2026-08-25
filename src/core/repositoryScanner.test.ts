@@ -14,6 +14,12 @@ const crashVulnerableFixture = fileURLToPath(
 const crashProtectedFixture = fileURLToPath(
   new URL("../../fixtures/crash-protected", import.meta.url)
 );
+const concurrencyVulnerableFixture = fileURLToPath(
+  new URL("../../fixtures/concurrency-vulnerable", import.meta.url)
+);
+const concurrencyProtectedFixture = fileURLToPath(
+  new URL("../../fixtures/concurrency-protected", import.meta.url)
+);
 
 describe("repository scanner", () => {
   it("discovers application-specific risks in a vulnerable integration", async () => {
@@ -71,6 +77,31 @@ describe("repository scanner", () => {
     expect(protectedResult.webhookSurfaces[0].durableOutbox).toBe(true);
     expect(protectedResult.risks).not.toContainEqual(
       expect.objectContaining({ id: "non-atomic-external-side-effect" })
+    );
+  });
+
+  it("distinguishes a hopeful idempotency check from an atomic claim", async () => {
+    const vulnerable = await scanRepository(concurrencyVulnerableFixture);
+    const protectedResult = await scanRepository(concurrencyProtectedFixture);
+
+    expect(vulnerable.webhookSurfaces[0]).toMatchObject({
+      eventIdIdempotency: true,
+      atomicEventClaim: false,
+      transactionBoundary: false
+    });
+    expect(vulnerable.risks).toContainEqual(
+      expect.objectContaining({
+        id: "non-atomic-idempotency-check",
+        suggestedScenario: "concurrent-delivery-race"
+      })
+    );
+    expect(protectedResult.webhookSurfaces[0]).toMatchObject({
+      eventIdIdempotency: true,
+      atomicEventClaim: true,
+      transactionBoundary: true
+    });
+    expect(protectedResult.risks).not.toContainEqual(
+      expect.objectContaining({ id: "non-atomic-idempotency-check" })
     );
   });
 });

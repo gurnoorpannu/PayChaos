@@ -20,6 +20,7 @@ const scan: RepositoryScanResult = {
       events: ["payment.captured"],
       signatureVerification: true,
       eventIdIdempotency: false,
+      atomicEventClaim: false,
       transactionBoundary: false,
       monotonicStateGuard: false,
       durableOutbox: false,
@@ -51,6 +52,38 @@ describe("repository intelligence", () => {
       confidence: 0.97
     });
     expect(result.hypotheses[0].evidence[0]).toBe("src/webhook.ts:8");
+  });
+
+  it("maps a non-atomic idempotency check to the concurrency campaign", () => {
+    const concurrencyScan: RepositoryScanResult = {
+      ...scan,
+      webhookSurfaces: [
+        {
+          ...scan.webhookSurfaces[0],
+          eventIdIdempotency: true,
+          atomicEventClaim: false
+        }
+      ],
+      risks: [
+        {
+          id: "non-atomic-idempotency-check",
+          severity: "critical",
+          title: "Idempotency check can lose a concurrency race",
+          file: "src/webhook.ts",
+          line: 8,
+          reason: "The read and write are separated.",
+          suggestedScenario: "concurrent-delivery-race"
+        }
+      ]
+    };
+
+    const result = analyzeLocally(concurrencyScan);
+
+    expect(result.invariants[0].id).toBe("INV-004");
+    expect(result.hypotheses[0]).toMatchObject({
+      scenario: "concurrent-delivery-race",
+      confidence: 0.97
+    });
   });
 
   it("requests strict, non-persistent structured output", async () => {
