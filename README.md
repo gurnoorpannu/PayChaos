@@ -2,6 +2,10 @@
 
 > **AI can build a payment integration in minutes. PayChaos proves whether it can survive production.**
 
+[Live read-only demo](https://gurnoorpannu.github.io/PayChaos/) ·
+[Buildathon submission brief](docs/SUBMISSION.md) ·
+[CI](https://github.com/gurnoorpannu/PayChaos/actions/workflows/ci.yml)
+
 PayChaos is an AI-powered payment reliability engineer. It understands how an
 application handles payments, forms application-specific failure hypotheses,
 executes them with a deterministic chaos engine, and validates the observed
@@ -94,7 +98,7 @@ deterministic invariant is violated by observed state.
 
 ## Quick start
 
-Requires Node.js 20.19 or newer.
+Requires Node.js 22 or newer.
 
 ```bash
 npm install
@@ -109,6 +113,7 @@ Useful commands:
 npm test          # deterministic engine and signature tests
 npm run build     # typecheck and production client build
 npm run scan -- . # inspect a local repository without executing it
+npm run evaluate  # score the scanner against the bundled labeled corpus
 npm run dev:api   # API only, on port 8787
 npm run dev:web   # dashboard only, on port 5173
 ```
@@ -247,17 +252,17 @@ docs/
 ├── RAZORPAY_TEST_MODE.md
 ├── REGRESSIONS.md
 ├── SANDBOX.md
+├── EVALUATION.md
+├── SUBMISSION.md
 └── SCANNING.md
 ```
 
 ## Delivery roadmap
 
-Phases 1 through 4—live HTTP execution, the safe Razorpay connector, executable
-regressions, and bounded Node target execution—are complete. The remaining work
-is submission hardening, evaluation, and deployment readiness.
-sequenced in [docs/DELIVERY_PLAN.md](docs/DELIVERY_PLAN.md).
-
-1. Evaluate, deploy and harden the final submission.
+All five delivery phases are complete: live HTTP execution, the safe Razorpay
+connector, executable regressions, bounded Node target execution, and
+submission hardening. The [delivery record](docs/DELIVERY_PLAN.md) separates
+implemented evidence from future production-scale isolation work.
 
 ## Safety
 

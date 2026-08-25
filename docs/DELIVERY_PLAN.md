@@ -10,7 +10,7 @@ and pushed.
 | 2. Razorpay Test Mode | Verify a real test order and connector health | Complete |
 | 3. Regression generation | Emit and execute a test from a proven incident | Complete |
 | 4. Repository sandbox | Run a selected Node target with bounded capabilities | Complete |
-| 5. Submission hardening | Evaluation corpus, hosted demo and final walkthrough | Pending |
+| 5. Submission hardening | Evaluation corpus, hosted demo and final walkthrough | Complete |
 
 ## Phase 1 — Live execution
 
@@ -83,9 +83,18 @@ isolation caveat.
 
 ## Phase 5 — Submission hardening
 
-Planned exit criteria:
+The scanner now has an exact-label evaluation over six paired repositories and
+CI fails on a missed or invented bundled risk. The current corpus reports three
+true-positive repositories, three true negatives, zero false results, and 100%
+exact-label precision/recall with an explicit small-curated-corpus caveat.
 
-- evaluate scanner precision across the bundled vulnerability corpus;
-- publish a hosted read-only demonstration;
-- add a submission checklist and three-to-five-minute walkthrough;
-- verify clean installation, CI, responsive layout and failure behavior.
+GitHub Pages publishes an HTTPS read-only demo generated from the same live
+campaign, repository and bounded-runner implementations. The UI labels replayed
+evidence and disables actions requiring a local trusted process. The final
+browser pass covered desktop interactions, the public URL, console errors,
+disabled live-only controls, and a 390 px viewport without horizontal overflow.
+
+CI uses a clean Node 22 `npm ci`, runs the full suite, evaluates the scanner and
+builds production assets. The separate Pages workflow regenerates verified
+evidence before deploying. See [EVALUATION.md](EVALUATION.md) and the judge-ready
+[SUBMISSION.md](SUBMISSION.md).
