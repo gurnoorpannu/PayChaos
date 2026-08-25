@@ -5,16 +5,16 @@ describe("scanner evaluation corpus", () => {
   it("classifies every bundled vulnerable and protected repository", async () => {
     const evaluation = await runScannerEvaluation();
 
-    expect(evaluation.repositories).toBe(6);
+    expect(evaluation.repositories).toBe(8);
     expect(evaluation.repositoryClassification).toEqual({
-      truePositive: 3,
-      trueNegative: 3,
+      truePositive: 4,
+      trueNegative: 4,
       falsePositive: 0,
       falseNegative: 0,
       accuracy: 1
     });
     expect(evaluation.riskLabels).toEqual({
-      truePositive: 4,
+      truePositive: 6,
       falsePositive: 0,
       falseNegative: 0,
       precision: 1,

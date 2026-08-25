@@ -87,6 +87,14 @@ const scenarioEvents: Record<ScenarioId, PaymentWebhook[]> = {
       event: "payment.captured",
       createdAt: 1_776_925_920
     }
+  ],
+  "forged-webhook": [
+    {
+      ...shared,
+      eventId: "evt_Q8m4Forged",
+      event: "payment.captured",
+      createdAt: 1_776_926_520
+    }
   ]
 };
 
@@ -104,7 +112,9 @@ export function regressionFixtureFromReport(report: CampaignReport): RegressionF
       const signed = createSignedWebhookRequest(webhook);
       return {
         eventId: webhook.eventId,
-        rawBody: signed.rawBody,
+        rawBody: report.scenario === "forged-webhook"
+          ? signed.rawBody.replace('"amount":50000', '"amount":50001')
+          : signed.rawBody,
         headers: signed.headers
       };
     }),

@@ -16,7 +16,12 @@ const corpus: EvaluationCase[] = [
   { fixture: "crash-vulnerable", expectedRiskIds: ["non-atomic-external-side-effect"] },
   { fixture: "crash-protected", expectedRiskIds: [] },
   { fixture: "concurrency-vulnerable", expectedRiskIds: ["non-atomic-idempotency-check"] },
-  { fixture: "concurrency-protected", expectedRiskIds: [] }
+  { fixture: "concurrency-protected", expectedRiskIds: [] },
+  {
+    fixture: "signature-vulnerable",
+    expectedRiskIds: ["missing-event-idempotency", "missing-signature-verification"]
+  },
+  { fixture: "signature-protected", expectedRiskIds: [] }
 ];
 
 export interface ScannerEvaluationResult {

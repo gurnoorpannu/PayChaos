@@ -4,6 +4,7 @@ import {
   generateRegressionArtifact,
   regressionFixtureFromReport
 } from "./regressionGenerator.js";
+import { demoWebhookSecret, verifyRazorpayWebhook } from "./razorpay.js";
 
 describe("regression generator", () => {
   it("preserves the exact signed payload, event ID, schedule, and invariant", () => {
@@ -48,6 +49,22 @@ describe("regression generator", () => {
     expect(() =>
       generateRegressionArtifact(runCampaign("crash-before-side-effect", "protected"))
     ).toThrow("requires a proven failed invariant");
+  });
+
+  it("preserves the stale signature over the tampered forged payload", () => {
+    const fixture = regressionFixtureFromReport(
+      runCampaign("forged-webhook", "vulnerable")
+    );
+    const delivery = fixture.deliveries[0];
+
+    expect(JSON.parse(delivery.rawBody)).toMatchObject({
+      payload: { payment: { entity: { amount: 50_001 } } }
+    });
+    expect(verifyRazorpayWebhook(
+      delivery.rawBody,
+      delivery.headers["x-razorpay-signature"],
+      demoWebhookSecret
+    )).toBe(false);
   });
 
   it("produces stable source and checksums for the same incident", () => {
