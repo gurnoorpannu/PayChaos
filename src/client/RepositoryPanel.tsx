@@ -58,7 +58,7 @@ export function RepositoryPanel({ onRunScenario }: RepositoryPanelProps) {
     }
   }
 
-  async function scanDemo(mode: "vulnerable" | "protected" | "crash" | "race") {
+  async function scanDemo(mode: "vulnerable" | "protected" | "crash" | "race" | "signature") {
     await requestScan(`/api/repositories/demo/${mode}`, { method: "POST" });
   }
 
@@ -147,6 +147,9 @@ export function RepositoryPanel({ onRunScenario }: RepositoryPanelProps) {
           <button onClick={() => void scanDemo("race")} disabled={loading}>
             Scan race demo
           </button>
+          <button onClick={() => void scanDemo("signature")} disabled={loading}>
+            Scan signature demo
+          </button>
           <button className="repository-upload" onClick={() => inputRef.current?.click()} disabled={loading || readOnlyDemo}>
             {readOnlyDemo ? "Local API required" : "Choose local repository"}
           </button>
@@ -217,9 +220,7 @@ export function RepositoryPanel({ onRunScenario }: RepositoryPanelProps) {
                 <strong>No supported static risk pattern detected</strong>
                 <p>This is not a pass. Dynamic campaigns remain necessary.</p>
               </div>
-            ) : result.intelligence.hypotheses.map((hypothesis) => {
-              const runnable = hypothesis.scenario !== "forged-webhook";
-              return (
+            ) : result.intelligence.hypotheses.map((hypothesis) => (
                 <article className="hypothesis-card" key={hypothesis.id}>
                   <div className="hypothesis-meta">
                     <span>{hypothesis.id}</span>
@@ -229,14 +230,12 @@ export function RepositoryPanel({ onRunScenario }: RepositoryPanelProps) {
                   <p>{hypothesis.financialImpact}</p>
                   <code>{hypothesis.evidence[0]}</code>
                   <button
-                    disabled={!runnable}
-                    onClick={() => runnable && onRunScenario(hypothesis.scenario as ScenarioId)}
+                    onClick={() => onRunScenario(hypothesis.scenario as ScenarioId)}
                   >
-                    {runnable ? "Run deterministic campaign →" : "Campaign coming next"}
+                    Run deterministic campaign →
                   </button>
                 </article>
-              );
-            })}
+            ))}
           </div>
         </div>
       ) : null}

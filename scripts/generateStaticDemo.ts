@@ -26,7 +26,8 @@ const scenarios: ScenarioId[] = [
   "duplicate-after-timeout",
   "out-of-order-regression",
   "crash-before-side-effect",
-  "concurrent-delivery-race"
+  "concurrent-delivery-race",
+  "forged-webhook"
 ];
 const modes: ProtectionMode[] = ["vulnerable", "protected"];
 const failedReports = new Map<ScenarioId, Awaited<ReturnType<typeof runLiveDuplicateCampaign>>>();
@@ -76,10 +77,12 @@ const repositoryFixtures: Record<string, string> = {
   vulnerable: "vulnerable-merchant",
   protected: "protected-merchant",
   crash: "crash-vulnerable",
-  race: "concurrency-vulnerable"
+  race: "concurrency-vulnerable",
+  signature: "signature-vulnerable"
 };
 for (const [mode, fixture] of Object.entries(repositoryFixtures)) {
   const scan = await scanRepository(path.join(projectRoot, "fixtures", fixture));
+  scan.root = fixture;
   await json(`repository-${mode}.json`, {
     scanId: `hosted_${mode}`,
     scan,
