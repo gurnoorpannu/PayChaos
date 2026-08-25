@@ -16,6 +16,13 @@ const kindLabel: Record<TimelineEntry["kind"], string> = {
   invariant: "ORACLE"
 };
 
+const scenarioCategory: Record<ScenarioId, string> = {
+  "duplicate-after-timeout": "IDEMPOTENCY",
+  "out-of-order-regression": "STATE ORDERING",
+  "crash-before-side-effect": "CRASH RECOVERY",
+  "concurrent-delivery-race": "CONCURRENCY"
+};
+
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const paths: Record<string, React.ReactNode> = {
     bolt: <path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z" />,
@@ -228,13 +235,7 @@ export function App() {
               >
                 <span>{scenario.id}</span>
                 <strong>{scenario.name}</strong>
-                <small>
-                  {scenario.scenario === "duplicate-after-timeout"
-                    ? "IDEMPOTENCY"
-                    : scenario.scenario === "out-of-order-regression"
-                      ? "STATE ORDERING"
-                      : "CRASH RECOVERY"}
-                </small>
+                <small>{scenarioCategory[scenario.scenario]}</small>
               </button>
             ))}
           </div>
@@ -527,6 +528,7 @@ export function App() {
                   className={
                     line.includes("fulfilment.create") ||
                     line.includes("eventId has a UNIQUE") ||
+                    line.includes("findFirst") ||
                     line.includes("outbox.create") ||
                     line.includes("queueShipment") ||
                     line.includes("payment.update")

@@ -11,9 +11,11 @@ import {
   type RepositorySourceFile
 } from "../core/repositoryScanner.js";
 import {
+  protectedConcurrencySource,
   protectedCrashSource,
   protectedMerchantSource,
   protectedStateSource,
+  vulnerableConcurrencySource,
   vulnerableCrashSource,
   vulnerableStateSource,
   vulnerableMerchantSource
@@ -49,7 +51,22 @@ function rememberScan(scan: RepositoryScanResult): string {
 function parseScenario(value: unknown): ScenarioId {
   if (value === "out-of-order-regression") return "out-of-order-regression";
   if (value === "crash-before-side-effect") return "crash-before-side-effect";
+  if (value === "concurrent-delivery-race") return "concurrent-delivery-race";
   return "duplicate-after-timeout";
+}
+
+function sourceForScenario(scenario: ScenarioId, mode: ProtectionMode): string {
+  const protectedMode = mode === "protected";
+  switch (scenario) {
+    case "out-of-order-regression":
+      return protectedMode ? protectedStateSource : vulnerableStateSource;
+    case "crash-before-side-effect":
+      return protectedMode ? protectedCrashSource : vulnerableCrashSource;
+    case "concurrent-delivery-race":
+      return protectedMode ? protectedConcurrencySource : vulnerableConcurrencySource;
+    default:
+      return protectedMode ? protectedMerchantSource : vulnerableMerchantSource;
+  }
 }
 
 async function repositoryResponse(scan: RepositoryScanResult) {
@@ -95,6 +112,14 @@ app.get("/api/overview", (_request, response) => {
         description:
           "Crash after payment state commits but before shipment dispatch, then restart and replay delivery.",
         operators: ["Commit", "Crash", "Restart", "Recover"]
+      },
+      {
+        id: "CHAOS-004",
+        scenario: "concurrent-delivery-race",
+        name: "Concurrent idempotency race",
+        description:
+          "Release the same captured event to two workers together, pausing both after their idempotency read.",
+        operators: ["Fork", "Read", "Race", "Inspect"]
       }
     ],
     source: vulnerableMerchantSource
@@ -113,7 +138,9 @@ app.post("/api/repositories/demo/:mode", async (request, response) => {
         ? "protected-merchant"
         : request.params.mode === "crash"
           ? "crash-vulnerable"
-          : "vulnerable-merchant";
+          : request.params.mode === "race"
+            ? "concurrency-vulnerable"
+            : "vulnerable-merchant";
     const scan = await scanRepository(path.join(projectRoot, "fixtures", fixture));
     response.json(await repositoryResponse(scan));
   } catch (error) {
@@ -182,18 +209,7 @@ app.get("/api/source/:scenario/:mode", (request, response) => {
   response.json({
     mode,
     scenario,
-    source:
-      scenario === "crash-before-side-effect"
-        ? mode === "protected"
-          ? protectedCrashSource
-          : vulnerableCrashSource
-        : scenario === "out-of-order-regression"
-        ? mode === "protected"
-          ? protectedStateSource
-          : vulnerableStateSource
-        : mode === "protected"
-          ? protectedMerchantSource
-          : vulnerableMerchantSource
+    source: sourceForScenario(scenario, mode)
   });
 });
 

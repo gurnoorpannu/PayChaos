@@ -57,7 +57,7 @@ export function RepositoryPanel({ onRunScenario }: RepositoryPanelProps) {
     }
   }
 
-  async function scanDemo(mode: "vulnerable" | "protected" | "crash") {
+  async function scanDemo(mode: "vulnerable" | "protected" | "crash" | "race") {
     await requestScan(`/api/repositories/demo/${mode}`, { method: "POST" });
   }
 
@@ -142,6 +142,9 @@ export function RepositoryPanel({ onRunScenario }: RepositoryPanelProps) {
           </button>
           <button onClick={() => void scanDemo("crash")} disabled={loading}>
             Scan crash-gap demo
+          </button>
+          <button onClick={() => void scanDemo("race")} disabled={loading}>
+            Scan race demo
           </button>
           <button className="repository-upload" onClick={() => inputRef.current?.click()} disabled={loading}>
             Choose local repository
