@@ -1,6 +1,8 @@
 import {
+  protectedCrashSource,
   protectedMerchantSource,
   protectedStateSource,
+  vulnerableCrashSource,
   vulnerableMerchantSource,
   vulnerableStateSource
 } from "./sample.js";
@@ -16,13 +18,18 @@ export function analyzeMerchant(
   scenario: ScenarioId = "duplicate-after-timeout"
 ): ArchitectureAnalysis {
   const stateScenario = scenario === "out-of-order-regression";
-  const source = stateScenario
+  const crashScenario = scenario === "crash-before-side-effect";
+  const source = crashScenario
     ? mode === "protected"
-      ? protectedStateSource
-      : vulnerableStateSource
-    : mode === "protected"
-      ? protectedMerchantSource
-      : vulnerableMerchantSource;
+      ? protectedCrashSource
+      : vulnerableCrashSource
+    : stateScenario
+      ? mode === "protected"
+        ? protectedStateSource
+        : vulnerableStateSource
+      : mode === "protected"
+        ? protectedMerchantSource
+        : vulnerableMerchantSource;
   const routeMatch = source.match(/router\.post\("([^"]+)"/);
   const eventMatch = source.match(/event === "([^"]+)"/);
   const hasEventHeader = source.includes("x-razorpay-event-id");
@@ -31,31 +38,55 @@ export function analyzeMerchant(
   const fulfilmentLine = source
     .split("\n")
     .findIndex((line) =>
-      line.includes(stateScenario ? "payment.update" : "fulfilment.create")
+      line.includes(
+        stateScenario
+          ? "payment.update"
+          : crashScenario && mode === "protected"
+            ? "outbox.create"
+            : crashScenario
+              ? "queueShipment"
+              : "fulfilment.create"
+      )
     );
   const hasMonotonicGuard = source.includes("CAPTURED is monotonic");
-  const protectedBoundary = stateScenario ? hasMonotonicGuard : hasIdempotencyGuard;
+  const hasDurableOutbox =
+    source.includes("outbox.create") &&
+    source.includes("outboxWorker") &&
+    source.includes("$transaction");
+  const protectedBoundary = crashScenario
+    ? hasDurableOutbox
+    : stateScenario
+      ? hasMonotonicGuard
+      : hasIdempotencyGuard;
 
   return {
     framework: "Express + Prisma",
     filesScanned: 12,
     webhookRoute: routeMatch?.[1] ?? "unknown",
-    detectedEvent: stateScenario ? "payment.captured + payment.failed" : eventMatch?.[1] ?? "unknown",
-    sideEffect: stateScenario
-      ? "Updates the persisted payment status"
-      : "Creates a fulfilment and queues a shipment",
+    detectedEvent: stateScenario
+      ? "payment.captured + payment.failed"
+      : eventMatch?.[1] ?? "payment.captured",
+    sideEffect: crashScenario
+      ? "Commits fulfilment then dispatches shipment"
+      : stateScenario
+        ? "Updates the persisted payment status"
+        : "Creates a fulfilment and queues a shipment",
     idempotencyGuard: protectedBoundary,
     confidence: protectedBoundary ? 0.96 : 0.98,
     evidence: {
       file: "src/routes/razorpay-webhook.ts",
       line: fulfilmentLine + 1,
-      excerpt: stateScenario
-        ? hasMonotonicGuard
-          ? "if (current.status === \"CAPTURED\" && event === \"payment.failed\") return"
-          : "payment.failed → data: { status: \"FAILED\" }"
-        : hasIdempotencyGuard
-          ? "UNIQUE(eventId) claimed inside the fulfilment transaction"
-          : "prisma.fulfilment.create({ paymentId: payment.id })"
+      excerpt: crashScenario
+        ? hasDurableOutbox
+          ? "tx.outbox.create({ key: `shipment:${orderId}` })"
+          : "commit fulfilment → queueShipment(orderId)"
+        : stateScenario
+          ? hasMonotonicGuard
+            ? "if (current.status === \"CAPTURED\" && event === \"payment.failed\") return"
+            : "payment.failed → data: { status: \"FAILED\" }"
+          : hasIdempotencyGuard
+            ? "UNIQUE(eventId) claimed inside the fulfilment transaction"
+            : "prisma.fulfilment.create({ paymentId: payment.id })"
     },
     nodes: [
       {
@@ -72,27 +103,41 @@ export function analyzeMerchant(
       },
       {
         id: "handler",
-        label: stateScenario
-          ? hasMonotonicGuard
-            ? "State transition guard"
-            : "Last-write-wins handler"
-          : hasIdempotencyGuard
-            ? "Atomic event claim"
-            : "Event handler",
-        detail: stateScenario
-          ? hasMonotonicGuard
-            ? "Captured state cannot regress"
-            : "No monotonic state guard"
-          : hasIdempotencyGuard
-            ? "Unique event ID guard"
-            : "No idempotency guard",
+        label: crashScenario
+          ? hasDurableOutbox
+            ? "Transactional outbox"
+            : "Post-commit dispatch"
+          : stateScenario
+            ? hasMonotonicGuard
+              ? "State transition guard"
+              : "Last-write-wins handler"
+            : hasIdempotencyGuard
+              ? "Atomic event claim"
+              : "Event handler",
+        detail: crashScenario
+          ? hasDurableOutbox
+            ? "Durable recovery boundary"
+            : "No durable handoff"
+          : stateScenario
+            ? hasMonotonicGuard
+              ? "Captured state cannot regress"
+              : "No monotonic state guard"
+            : hasIdempotencyGuard
+              ? "Unique event ID guard"
+              : "No idempotency guard",
         kind: "logic",
         risk: !protectedBoundary
       },
       {
         id: "database",
-        label: stateScenario ? "Payments" : "Fulfilments",
-        detail: stateScenario ? "UPDATE status" : "INSERT + queue shipment",
+        label: crashScenario ? (hasDurableOutbox ? "Outbox worker" : "Shipment queue") : stateScenario ? "Payments" : "Fulfilments",
+        detail: crashScenario
+          ? hasDurableOutbox
+            ? "Retry pending dispatch"
+            : "Best-effort call"
+          : stateScenario
+            ? "UPDATE status"
+            : "INSERT + queue shipment",
         kind: "database"
       }
     ]
@@ -117,6 +162,21 @@ export function generateHypothesis(
       faultPlan: ["Capture", "Delay failure", "Deliver stale event", "Inspect state"],
       invariant: "captured(P) ⇒ final_status(P) = CAPTURED",
       confidence: guarded ? 0.95 : 0.98
+    };
+  }
+
+  if (scenario === "crash-before-side-effect") {
+    return {
+      id: "HYP-003",
+      title: guarded
+        ? "A durable outbox should recover shipment after a process crash"
+        : "A post-commit crash can strand a paid order",
+      reasoning: guarded
+        ? "The event claim, fulfilment, and shipment intent are committed atomically. A restarted worker can recover the pending outbox row without replaying business state."
+        : "The handler commits the event claim and fulfilment before calling the shipment queue. If the process crashes in that gap, a webhook retry sees the claimed event and skips the missing side effect.",
+      faultPlan: ["Commit payment", "Crash process", "Restart worker", "Retry webhook"],
+      invariant: "captured(P) ⇒ count(shipment_jobs(order(P))) = 1",
+      confidence: guarded ? 0.96 : 0.99
     };
   }
 

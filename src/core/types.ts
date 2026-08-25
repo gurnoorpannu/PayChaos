@@ -1,5 +1,8 @@
 export type ProtectionMode = "vulnerable" | "protected";
-export type ScenarioId = "duplicate-after-timeout" | "out-of-order-regression";
+export type ScenarioId =
+  | "duplicate-after-timeout"
+  | "out-of-order-regression"
+  | "crash-before-side-effect";
 
 export type TimelineKind =
   | "analysis"

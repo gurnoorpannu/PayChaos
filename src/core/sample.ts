@@ -82,3 +82,56 @@ export const protectedStateSource = `router.post("/webhooks/razorpay", rawBody, 
 
   return res.sendStatus(200);
 });`;
+
+export const vulnerableCrashSource = `router.post("/webhooks/razorpay", rawBody, async (req, res) => {
+  verifyRazorpaySignature(req.body, req.headers);
+  const eventId = req.headers["x-razorpay-event-id"];
+  const payment = req.body.payload.payment.entity;
+
+  const claimed = await prisma.$transaction(async (tx) => {
+    const event = await tx.webhookEvent.create({
+      data: { eventId } // eventId has a UNIQUE constraint
+    }).catch(() => null);
+    if (!event) return false;
+
+    await tx.fulfilment.create({
+      data: { paymentId: payment.id, orderId: payment.order_id }
+    });
+    return true;
+  });
+
+  if (!claimed) return res.sendStatus(200);
+
+  // A crash here loses the shipment forever; retry sees an already-claimed event.
+  await queueShipment(payment.order_id);
+  return res.sendStatus(200);
+});`;
+
+export const protectedCrashSource = `router.post("/webhooks/razorpay", rawBody, async (req, res) => {
+  verifyRazorpaySignature(req.body, req.headers);
+  const eventId = req.headers["x-razorpay-event-id"];
+  const payment = req.body.payload.payment.entity;
+
+  await prisma.$transaction(async (tx) => {
+    const event = await tx.webhookEvent.create({
+      data: { eventId } // eventId has a UNIQUE constraint
+    }).catch(() => null);
+    if (!event) return;
+
+    await tx.fulfilment.create({
+      data: { paymentId: payment.id, orderId: payment.order_id }
+    });
+    await tx.outbox.create({
+      data: {
+        key: "shipment:" + payment.order_id, // UNIQUE outbox key
+        topic: "shipment.requested",
+        payload: { orderId: payment.order_id }
+      }
+    });
+  });
+
+  return res.sendStatus(200);
+});
+
+// A restart-safe worker drains pending outbox rows until dispatch succeeds.
+await outboxWorker.start({ retry: "exponential", delivery: "at-least-once" });`;
