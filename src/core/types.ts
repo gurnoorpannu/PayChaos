@@ -95,6 +95,13 @@ export interface CampaignReport {
   id: string;
   mode: ProtectionMode;
   scenario: ScenarioId;
+  execution: {
+    kind: "deterministic-model" | "live-http";
+    target: string;
+    transport: "in-process" | "HTTP";
+    requests: number;
+    stateReads: number;
+  };
   status: "passed" | "failed";
   startedAt: string;
   durationMs: number;

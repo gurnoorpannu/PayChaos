@@ -142,6 +142,13 @@ export function runConcurrentDeliveryCampaign(
     id: `run_${randomUUID().slice(0, 8)}`,
     mode,
     scenario: "concurrent-delivery-race",
+    execution: {
+      kind: "deterministic-model",
+      target: "ConcurrentWorkerModel",
+      transport: "in-process",
+      requests: 2,
+      stateReads: 1
+    },
     status: passed ? "passed" : "failed",
     startedAt: new Date().toISOString(),
     durationMs: 1_080,

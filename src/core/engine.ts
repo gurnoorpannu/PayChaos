@@ -81,6 +81,13 @@ export function runDuplicateAfterTimeoutCampaign(
     id: `run_${randomUUID().slice(0, 8)}`,
     mode,
     scenario: "duplicate-after-timeout",
+    execution: {
+      kind: "deterministic-model",
+      target: "MerchantSimulator",
+      transport: "in-process",
+      requests: 2,
+      stateReads: 1
+    },
     status: passed ? "passed" : "failed",
     startedAt: new Date().toISOString(),
     durationMs: 3_240,

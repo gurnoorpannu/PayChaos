@@ -194,6 +194,13 @@ export function runCrashRecoveryCampaign(
     id: `run_${randomUUID().slice(0, 8)}`,
     mode,
     scenario: "crash-before-side-effect",
+    execution: {
+      kind: "deterministic-model",
+      target: "CrashRecoveryModel",
+      transport: "in-process",
+      requests: 2,
+      stateReads: 2
+    },
     status: passed ? "passed" : "failed",
     startedAt: new Date().toISOString(),
     durationMs: 2_780,

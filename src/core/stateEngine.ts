@@ -168,6 +168,13 @@ export function runOutOfOrderCampaign(
     id: `run_${randomUUID().slice(0, 8)}`,
     mode,
     scenario: "out-of-order-regression",
+    execution: {
+      kind: "deterministic-model",
+      target: "PaymentStateModel",
+      transport: "in-process",
+      requests: 2,
+      stateReads: 1
+    },
     status: passed ? "passed" : "failed",
     startedAt: new Date().toISOString(),
     durationMs: 2_260,
