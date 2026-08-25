@@ -95,6 +95,16 @@ t+0.824 release worker B into the same write path
 t+1.08  evaluate the concurrent-fulfilment invariant
 ```
 
+`CHAOS-005` currently runs:
+
+```text
+t+0.48  sign a valid Razorpay-shaped capture over the exact raw bytes
+t+0.65  change the payment amount by one paise after signing
+t+0.90  deliver the forged body with the stale signature header
+t+0.90  accept into business logic, or reject with HTTP 401
+t+1.16  inspect merchant writes and evaluate the authenticity invariant
+```
+
 ### 4. Merchant adapter
 
 The adapter is the narrow interface between a campaign and the system under
@@ -115,7 +125,7 @@ output and time bounds.
 
 The oracle evaluates observed state, never generated prose.
 
-Current invariant:
+Current invariants:
 
 ```text
 INV-001 exactly-once fulfilment
@@ -129,6 +139,9 @@ captured(P) implies count(shipment_jobs(order(P))) = 1
 
 INV-004 atomic concurrent fulfilment
 concurrent(deliveries(E)) implies count(fulfilments(payment(E))) <= 1
+
+INV-005 authentic payment events only
+invalid_signature(E) implies count(side_effects(E)) = 0
 ```
 
 Future invariants will cover amount conservation, capture and refund bounds,

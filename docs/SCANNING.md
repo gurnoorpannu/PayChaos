@@ -89,5 +89,6 @@ The scanner performs reads only. It does not:
 - follow symbolic links;
 - transmit source code to a model or remote service.
 
-Future sandbox execution must remain a separate, explicit stage with isolated
-credentials, network policy and disposable backing services.
+Selected-code execution remains a separate, explicit stage with isolated
+credentials, denied child network access, bounded resources and disposable
+working directories. The scanner itself never crosses that execution boundary.

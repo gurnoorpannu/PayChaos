@@ -1,8 +1,8 @@
 # Scanner evaluation
 
-PayChaos evaluates its architecture scanner against six bundled repositories
-with explicit expected labels. Three contain one or more known payment
-reliability defects; three contain the corresponding controls.
+PayChaos evaluates its architecture scanner against eight bundled repositories
+with explicit expected labels. Four contain one or more known payment
+reliability defects; four contain the corresponding controls.
 
 Run the reproducible evaluation:
 
@@ -15,8 +15,8 @@ npm run evaluate -- --json
 
 | Metric | Result |
 | --- | ---: |
-| Repository true positives | 3 |
-| Repository true negatives | 3 |
+| Repository true positives | 4 |
+| Repository true negatives | 4 |
 | Repository false positives | 0 |
 | Repository false negatives | 0 |
 | Repository accuracy | 100% |
@@ -32,6 +32,8 @@ npm run evaluate -- --json
 | `crash-protected` | no supported risk pattern |
 | `concurrency-vulnerable` | non-atomic idempotency check |
 | `concurrency-protected` | no supported risk pattern |
+| `signature-vulnerable` | missing event idempotency; missing signature verification |
+| `signature-protected` | no supported risk pattern |
 
 The evaluation compares exact risk IDs, not only a vulnerable/safe binary. It
 runs in CI so a scanner change that drops a known risk or invents one in a

@@ -4,6 +4,7 @@
 
 [Live read-only demo](https://gurnoorpannu.github.io/PayChaos/) ·
 [Buildathon submission brief](docs/SUBMISSION.md) ·
+[Five-minute pitch plan](docs/PITCH_VIDEO.md) ·
 [CI](https://github.com/gurnoorpannu/PayChaos/actions/workflows/ci.yml)
 
 PayChaos is an AI-powered payment reliability engineer. It understands how an
@@ -18,7 +19,7 @@ lost, and the same webhook arrives again?”**
 
 ## What works today
 
-The current buildathon vertical slice demonstrates four complete reliability
+The current buildathon vertical slice demonstrates five complete reliability
 loops against a Razorpay-shaped integration:
 
 1. Map an Express and Prisma webhook handler.
@@ -54,6 +55,13 @@ is not atomic. Two workers both read “event not processed” before either wri
 then create duplicate fulfilments four virtual milliseconds apart. A unique
 event claim inside the fulfilment transaction serializes the protected replay.
 
+The fifth campaign tests the webhook authenticity boundary. PayChaos signs an
+untouched capture, changes its amount by one paise, and delivers the forged raw
+body with the now-stale signature. The vulnerable handler creates a ₹500.01
+fulfilment; the protected handler rejects it with HTTP 401 before any business
+write. This closes the full scanner → hypothesis → attack → invariant loop for
+missing signature verification.
+
 An optional Razorpay Test Mode connector now verifies the real provider API
 boundary. After an explicit click, it creates one fixed ₹5 test order, fetches
 it by ID, and compares the normalized evidence. Live keys are rejected before
@@ -80,6 +88,7 @@ state evidence, and destroys the workspace after every run. See
 | `CHAOS-002` | Capture → Delay → Stale failure → Inspect | A captured payment cannot regress to failed |
 | `CHAOS-003` | Commit → Crash → Restart → Recover | One captured order creates exactly one shipment job |
 | `CHAOS-004` | Fork → Read → Race → Inspect | Simultaneous delivery creates at most one fulfilment |
+| `CHAOS-005` | Sign → Tamper → Deliver → Inspect | An invalid signature creates zero side effects |
 
 ## The important boundary
 
@@ -127,6 +136,8 @@ npm run scan -- ./fixtures/crash-vulnerable
 npm run scan -- ./fixtures/crash-protected
 npm run scan -- ./fixtures/concurrency-vulnerable
 npm run scan -- ./fixtures/concurrency-protected
+npm run scan -- ./fixtures/signature-vulnerable
+npm run scan -- ./fixtures/signature-protected
 npm run scan -- /path/to/your/project --json
 ```
 
@@ -231,8 +242,9 @@ Campaign request:
 
 Use `"out-of-order-regression"` for the state-ordering campaign,
 `"crash-before-side-effect"` for crash recovery,
-`"concurrent-delivery-race"` for the read-write race, and `"protected"` to
-verify the relevant control against the identical event schedule.
+`"concurrent-delivery-race"` for the read-write race,
+`"forged-webhook"` for authenticity testing, and `"protected"` to verify the
+relevant control against the identical event schedule.
 
 ## Repository map
 
@@ -253,6 +265,7 @@ docs/
 ├── REGRESSIONS.md
 ├── SANDBOX.md
 ├── EVALUATION.md
+├── PITCH_VIDEO.md
 ├── SUBMISSION.md
 └── SCANNING.md
 ```

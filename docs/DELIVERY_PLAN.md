@@ -83,10 +83,16 @@ isolation caveat.
 
 ## Phase 5 — Submission hardening
 
-The scanner now has an exact-label evaluation over six paired repositories and
-CI fails on a missed or invented bundled risk. The current corpus reports three
-true-positive repositories, three true negatives, zero false results, and 100%
+The scanner now has an exact-label evaluation over eight labeled repositories
+and CI fails on a missed or invented bundled risk. The current corpus reports
+four true-positive repositories, four true negatives, zero false results, and 100%
 exact-label precision/recall with an explicit small-curated-corpus caveat.
+
+Submission hardening also closes the fifth end-to-end loop: a missing signature
+boundary detected during scanning can launch `CHAOS-005`, which tampers with a
+previously signed raw request and verifies that an invalid signature produces
+zero business writes. The project is positioned honestly in Track 05 — Open
+Track, with a timed recording plan in [PITCH_VIDEO.md](PITCH_VIDEO.md).
 
 GitHub Pages publishes an HTTPS read-only demo generated from the same live
 campaign, repository and bounded-runner implementations. The UI labels replayed

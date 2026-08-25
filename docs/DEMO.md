@@ -126,6 +126,22 @@ Choose **Scan race demo** in the Repository section to show how PayChaos
 distinguishes a hopeful read-before-write check from an atomic idempotency
 boundary and launches the matching deterministic campaign.
 
+## Alternate campaign: forged webhook
+
+Choose **Scan signature demo** in the Repository section. The scanner finds a
+Razorpay capture route with an irreversible fulfilment write but no raw-body
+signature boundary, then generates `HYP-005` from those evidence lines.
+
+Launch its deterministic campaign. PayChaos signs a valid capture, changes the
+amount from 50000 to 50001 paise after signing, and delivers the forged bytes
+with the original signature. The vulnerable route returns HTTP 200 and creates
+one ₹500.01 fulfilment even though signature verification is false, so
+`INV-005` fails.
+
+Choose **Verify fix** to replay the exact forged bytes against a handler that
+verifies `x-razorpay-signature` over the untouched raw body before parsing or
+writing state. It returns HTTP 401, observes zero writes, and passes.
+
 ## Bounded target proof
 
 In the **Bounded repository execution** panel, run the vulnerable target. Point

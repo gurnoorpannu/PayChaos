@@ -64,9 +64,8 @@ hypotheses[]
 ```
 
 Scenario values are constrained to known identifiers. Duplicate delivery,
-concurrent delivery, out-of-order state, and crash recovery map directly to
-deterministic campaign operators; forged-webhook analysis remains a prioritized
-candidate until its operator is implemented.
+concurrent delivery, out-of-order state, crash recovery, and forged-webhook
+authenticity analysis all map directly to deterministic campaign operators.
 
 ## Failure behavior
 
