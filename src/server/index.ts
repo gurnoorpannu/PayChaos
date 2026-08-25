@@ -4,6 +4,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCampaign } from "../core/campaigns.js";
 import { runLiveDuplicateCampaign } from "../live/liveCampaign.js";
+import {
+  createRazorpayDiagnosticOrder,
+  getRazorpayConnectorStatus,
+  RazorpayConnectorError
+} from "../connectors/razorpayTestMode.js";
 import { IntelligenceService } from "../core/intelligence.js";
 import {
   scanRepository,
@@ -130,6 +135,26 @@ app.get("/api/overview", (_request, response) => {
 
 app.get("/api/intelligence/status", (_request, response) => {
   response.json(intelligenceService.status());
+});
+
+app.get("/api/razorpay/status", (_request, response) => {
+  response.json(getRazorpayConnectorStatus());
+});
+
+app.post("/api/razorpay/test-order", async (_request, response) => {
+  try {
+    response.json(await createRazorpayDiagnosticOrder());
+  } catch (error) {
+    if (error instanceof RazorpayConnectorError) {
+      response.status(error.status).json({ error: error.message, code: error.code });
+      return;
+    }
+
+    response.status(502).json({
+      error: "The Razorpay Test Mode request could not be completed.",
+      code: "request_failed"
+    });
+  }
 });
 
 app.post("/api/repositories/demo/:mode", async (request, response) => {
