@@ -14,7 +14,7 @@ lost, and the same webhook arrives again?”**
 
 ## What works today
 
-The current buildathon vertical slice demonstrates three complete reliability
+The current buildathon vertical slice demonstrates four complete reliability
 loops against a Razorpay-shaped integration:
 
 1. Map an Express and Prisma webhook handler.
@@ -39,11 +39,17 @@ on retry, yet also makes the missing shipment permanent. The protected version
 atomically records a uniquely keyed outbox intent, which a restarted worker
 recovers without creating a second fulfilment.
 
+The fourth campaign targets a subtler bug: an idempotency check that exists but
+is not atomic. Two workers both read “event not processed” before either writes,
+then create duplicate fulfilments four virtual milliseconds apart. A unique
+event claim inside the fulfilment transaction serializes the protected replay.
+
 | Campaign | Fault sequence | Financial invariant |
 | --- | --- | --- |
 | `CHAOS-001` | Deliver → Commit → Timeout → Retry | One payment creates at most one fulfilment |
 | `CHAOS-002` | Capture → Delay → Stale failure → Inspect | A captured payment cannot regress to failed |
 | `CHAOS-003` | Commit → Crash → Restart → Recover | One captured order creates exactly one shipment job |
+| `CHAOS-004` | Fork → Read → Race → Inspect | Simultaneous delivery creates at most one fulfilment |
 
 ## The important boundary
 
@@ -88,12 +94,14 @@ npm run scan -- ./fixtures/vulnerable-merchant
 npm run scan -- ./fixtures/protected-merchant
 npm run scan -- ./fixtures/crash-vulnerable
 npm run scan -- ./fixtures/crash-protected
+npm run scan -- ./fixtures/concurrency-vulnerable
+npm run scan -- ./fixtures/concurrency-protected
 npm run scan -- /path/to/your/project --json
 ```
 
 The scanner walks bounded source files, skips dependencies, build output and
 symlinks, and never executes target code. It detects Razorpay webhook surfaces,
-signature boundaries, event-ID claims, database transactions, state guards,
+signature boundaries, atomic event claims, database transactions, state guards,
 transactional outboxes and financial side effects. See
 [docs/SCANNING.md](docs/SCANNING.md).
 
@@ -178,8 +186,9 @@ Campaign request:
 ```
 
 Use `"out-of-order-regression"` for the state-ordering campaign,
-`"crash-before-side-effect"` for crash recovery, and `"protected"` to verify
-the relevant control against the identical event schedule.
+`"crash-before-side-effect"` for crash recovery,
+`"concurrent-delivery-race"` for the read-write race, and `"protected"` to
+verify the relevant control against the identical event schedule.
 
 ## Repository map
 
@@ -200,7 +209,7 @@ docs/
 
 - Add authenticated GitHub ingestion on top of the working local scanner.
 - Evaluate the schema-constrained model provider across the vulnerability corpus.
-- Add concurrent-capture and partial-refund campaigns.
+- Add partial-refund and capture-limit campaigns.
 - Run merchant applications in disposable, network-isolated sandboxes.
 - Capture database queries, logs, spans, and fulfilment side effects as evidence.
 - Generate a regression test and open a reviewable patch after user approval.

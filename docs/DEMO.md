@@ -101,3 +101,21 @@ observes exactly one shipment job.
 To connect repository understanding to execution, choose **Scan crash-gap demo**
 in the Repository section. The grounded analyzer identifies the missing durable
 handoff and its generated hypothesis launches `CHAOS-003` directly.
+
+## Alternate campaign: concurrency race
+
+Select `CHAOS-004` for the strongest “looks safe in review” example. The source
+checks `webhookEvent.findFirst({ eventId })` and returns when it finds an existing
+event, so it appears idempotent. PayChaos forks one signed capture across two
+workers and pauses both immediately after that read. Both observe “missing,”
+then create two fulfilments four virtual milliseconds apart.
+
+Show **Concurrent worker outcomes** and the `DUPLICATE` row, then choose
+**Verify fix**. In the protected replay, a unique event claim and fulfilment
+share one database transaction. Worker A commits; worker B receives the unique
+conflict and becomes a safe no-op. The scheduler, signature, payload and timing
+remain identical.
+
+Choose **Scan race demo** in the Repository section to show how PayChaos
+distinguishes a hopeful read-before-write check from an atomic idempotency
+boundary and launches the matching deterministic campaign.

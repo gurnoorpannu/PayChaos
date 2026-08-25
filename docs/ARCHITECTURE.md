@@ -14,6 +14,7 @@ The analyzer converts payment code into a compact architecture model:
 - database writes and irreversible business side effects;
 - transaction boundaries;
 - idempotency keys and uniqueness constraints;
+- read-write gaps inside apparent idempotency controls;
 - payment-state transitions;
 - durable outbox handoffs around external side effects.
 
@@ -83,6 +84,17 @@ t+2.30  retry the identical event ID
 t+2.78  evaluate the shipment-job invariant
 ```
 
+`CHAOS-004` currently runs:
+
+```text
+t+0.52  fork one signed event to two workers
+t+0.61  verify the identical payload in both workers
+t+0.76  pause both after they read event history
+t+0.82  release worker A to commit fulfilment
+t+0.824 release worker B into the same write path
+t+1.08  evaluate the concurrent-fulfilment invariant
+```
+
 ### 4. Merchant adapter
 
 The adapter is the narrow interface between a campaign and the system under
@@ -105,10 +117,13 @@ captured(P) implies final_status(P) = CAPTURED
 
 INV-003 durable fulfilment dispatch
 captured(P) implies count(shipment_jobs(order(P))) = 1
+
+INV-004 atomic concurrent fulfilment
+concurrent(deliveries(E)) implies count(fulfilments(payment(E))) <= 1
 ```
 
 Future invariants will cover amount conservation, capture and refund bounds,
-order-to-payment cardinality, and concurrent requests.
+order-to-payment cardinality, and partial failure across multi-step refunds.
 
 ### 6. Incident reconstruction
 
