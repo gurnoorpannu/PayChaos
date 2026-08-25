@@ -22,6 +22,7 @@ const scan: RepositoryScanResult = {
       eventIdIdempotency: false,
       transactionBoundary: false,
       monotonicStateGuard: false,
+      durableOutbox: false,
       sideEffects: ["create fulfilment"]
     }
   ],

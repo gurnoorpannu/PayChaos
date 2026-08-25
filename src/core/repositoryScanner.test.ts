@@ -8,6 +8,12 @@ const vulnerableFixture = fileURLToPath(
 const protectedFixture = fileURLToPath(
   new URL("../../fixtures/protected-merchant", import.meta.url)
 );
+const crashVulnerableFixture = fileURLToPath(
+  new URL("../../fixtures/crash-vulnerable", import.meta.url)
+);
+const crashProtectedFixture = fileURLToPath(
+  new URL("../../fixtures/crash-protected", import.meta.url)
+);
 
 describe("repository scanner", () => {
   it("discovers application-specific risks in a vulnerable integration", async () => {
@@ -45,5 +51,26 @@ describe("repository scanner", () => {
 
     expect(result.filesScanned).toBe(0);
     expect(result.truncated).toBe(true);
+  });
+
+  it("detects the post-commit external side-effect gap", async () => {
+    const vulnerable = await scanRepository(crashVulnerableFixture);
+    const protectedResult = await scanRepository(crashProtectedFixture);
+
+    expect(vulnerable.webhookSurfaces[0]).toMatchObject({
+      eventIdIdempotency: true,
+      transactionBoundary: true,
+      durableOutbox: false
+    });
+    expect(vulnerable.risks).toContainEqual(
+      expect.objectContaining({
+        id: "non-atomic-external-side-effect",
+        suggestedScenario: "crash-before-side-effect"
+      })
+    );
+    expect(protectedResult.webhookSurfaces[0].durableOutbox).toBe(true);
+    expect(protectedResult.risks).not.toContainEqual(
+      expect.objectContaining({ id: "non-atomic-external-side-effect" })
+    );
   });
 });
