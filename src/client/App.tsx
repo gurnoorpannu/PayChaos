@@ -8,6 +8,7 @@ import type {
 } from "../core/types.js";
 import { RepositoryPanel } from "./RepositoryPanel.js";
 import { RazorpayPanel } from "./RazorpayPanel.js";
+import { SandboxPanel } from "./SandboxPanel.js";
 
 const kindLabel: Record<TimelineEntry["kind"], string> = {
   analysis: "AI",
@@ -224,6 +225,7 @@ export function App() {
           <a className="active" href="#campaign">Campaign</a>
           <a href="#architecture">Architecture</a>
           <a href="#razorpay">Razorpay</a>
+          <a href="#sandbox">Sandbox</a>
           <a href="#repository">Repository</a>
           <a href="#finding">Finding</a>
         </nav>
@@ -601,6 +603,8 @@ export function App() {
         </section>
 
         <RazorpayPanel />
+
+        <SandboxPanel />
 
         <RepositoryPanel
           onRunScenario={(scenario) => {

@@ -1,5 +1,6 @@
 import express from "express";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCampaign } from "../core/campaigns.js";
@@ -11,6 +12,12 @@ import {
 } from "../connectors/razorpayTestMode.js";
 import { IntelligenceService } from "../core/intelligence.js";
 import { generateRegressionArtifact } from "../core/regressionGenerator.js";
+import {
+  runBoundedNodeCampaign,
+  sandboxPolicy,
+  SandboxRunError,
+  type SandboxSourceFile
+} from "../sandbox/boundedRunner.js";
 import {
   scanRepository,
   scanSourceFiles,
@@ -156,6 +163,49 @@ app.post("/api/razorpay/test-order", async (_request, response) => {
       code: "request_failed"
     });
   }
+});
+
+app.get("/api/sandbox/status", (_request, response) => {
+  response.json({
+    available: true,
+    runtime: `Node ${process.versions.node}`,
+    contract: "synchronous globalThis.paychaosTarget.handle() + snapshot()",
+    policy: sandboxPolicy
+  });
+});
+
+async function sendSandboxRun(
+  files: SandboxSourceFile[],
+  entry: string,
+  response: express.Response
+) {
+  try {
+    response.json(await runBoundedNodeCampaign(files, entry));
+  } catch (error) {
+    if (error instanceof SandboxRunError) {
+      response.status(error.code === "invalid_target" || error.code === "limit_exceeded" ? 400 : 422).json({
+        error: error.message.slice(0, 500),
+        code: error.code
+      });
+      return;
+    }
+    response.status(500).json({ error: "The bounded target could not be executed." });
+  }
+}
+
+app.post("/api/sandbox/demo/:mode", async (request, response) => {
+  const mode = request.params.mode === "protected" ? "protected" : "vulnerable";
+  const content = await readFile(
+    path.join(projectRoot, "fixtures", `sandbox-${mode}`, "target.js"),
+    "utf8"
+  );
+  await sendSandboxRun([{ path: "target.js", content }], "target.js", response);
+});
+
+app.post("/api/sandbox/run", async (request, response) => {
+  const files = Array.isArray(request.body?.files) ? request.body.files : [];
+  const entry = typeof request.body?.entry === "string" ? request.body.entry : "";
+  await sendSandboxRun(files, entry, response);
 });
 
 app.post("/api/repositories/demo/:mode", async (request, response) => {

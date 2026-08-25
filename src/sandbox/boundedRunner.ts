@@ -14,6 +14,19 @@ const MAX_REQUEST_BYTES = 64_000;
 const MAX_WALL_MS = 3_000;
 const MAX_OUTPUT_BYTES = 16_384;
 
+export const sandboxPolicy = {
+  maxFiles: MAX_FILES,
+  maxFileBytes: MAX_FILE_BYTES,
+  maxTotalBytes: MAX_TOTAL_BYTES,
+  maxRequestBytes: MAX_REQUEST_BYTES,
+  maxWallMs: MAX_WALL_MS,
+  maxOperationCpuMs: 100,
+  maxMemoryMb: 64,
+  maxOutputBytes: MAX_OUTPUT_BYTES,
+  childNetwork: "denied" as const,
+  childFilesystem: "read selected target only" as const
+};
+
 export interface SandboxSourceFile {
   path: string;
   content: string;
