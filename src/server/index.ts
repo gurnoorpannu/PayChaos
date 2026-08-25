@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCampaign } from "../core/campaigns.js";
+import { runLiveDuplicateCampaign } from "../live/liveCampaign.js";
 import { IntelligenceService } from "../core/intelligence.js";
 import {
   scanRepository,
@@ -86,7 +87,7 @@ app.get("/api/overview", (_request, response) => {
     target: {
       name: "Acme Store",
       environment: "Razorpay Test Mode",
-      stack: "Express · Prisma · PostgreSQL"
+      stack: "Express · Live HTTP · Instrumented store"
     },
     scenarios: [
       {
@@ -213,11 +214,21 @@ app.get("/api/source/:scenario/:mode", (request, response) => {
   });
 });
 
-app.post("/api/campaigns", (request, response) => {
-  const mode: ProtectionMode =
-    request.body?.mode === "protected" ? "protected" : "vulnerable";
-  const scenario = parseScenario(request.body?.scenario);
-  response.json(runCampaign(scenario, mode));
+app.post("/api/campaigns", async (request, response) => {
+  try {
+    const mode: ProtectionMode =
+      request.body?.mode === "protected" ? "protected" : "vulnerable";
+    const scenario = parseScenario(request.body?.scenario);
+    const report =
+      scenario === "duplicate-after-timeout"
+        ? await runLiveDuplicateCampaign(mode)
+        : runCampaign(scenario, mode);
+    response.json(report);
+  } catch (error) {
+    response.status(500).json({
+      error: error instanceof Error ? error.message : "Campaign execution failed."
+    });
+  }
 });
 
 const staticDirectory = path.resolve(currentDirectory, "../../dist");

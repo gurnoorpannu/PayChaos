@@ -194,7 +194,9 @@ export function App() {
         <div className="target-pill">
           <span className="live-dot" />
           {overview?.target.name ?? "Connecting…"}
-          <span className="target-pill__mode">TEST</span>
+          <span className="target-pill__mode">
+            {report?.execution.kind === "live-http" ? "LIVE HTTP" : "MODEL"}
+          </span>
         </div>
       </header>
 
@@ -217,7 +219,9 @@ export function App() {
               <span className={running ? "spin" : ""}><Icon name={running ? "spark" : "play"} /></span>
               {running ? "Attacking integration…" : "Run campaign"}
             </button>
-            <span className="keyboard-hint">{selectedScenario?.id ?? "CHAOS"} · deterministic replay</span>
+            <span className="keyboard-hint">
+              {selectedScenario?.id ?? "CHAOS"} · {report?.execution.kind === "live-http" ? "observed HTTP execution" : "deterministic replay"}
+            </span>
           </div>
         </section>
 
@@ -305,7 +309,11 @@ export function App() {
             <div>
               <span className="metric-label">Virtual campaign time</span>
               <strong>{report ? `${(report.durationMs / 1000).toFixed(2)}s` : "—"}</strong>
-              <small>Exact replay available</small>
+              <small>
+                {report?.execution.kind === "live-http"
+                  ? `${report.execution.requests} HTTP deliveries · ${report.execution.stateReads} state read`
+                  : "Exact replay available"}
+              </small>
             </div>
           </article>
         </section>
@@ -478,7 +486,9 @@ export function App() {
           <article className="panel evidence-panel">
             <div className="panel-heading">
               <div>
-                <span className="section-kicker">DATABASE EVIDENCE</span>
+                <span className="section-kicker">
+                  {report?.execution.kind === "live-http" ? "LIVE TARGET EVIDENCE" : "DATABASE EVIDENCE"}
+                </span>
                 <h2>{report?.evidenceTable.title ?? "Observed records"}</h2>
               </div>
               <span className="record-count">{report?.evidenceTable.rows.length ?? 0} rows</span>
