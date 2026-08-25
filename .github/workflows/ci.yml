@@ -28,5 +28,8 @@ jobs:
       - name: Run deterministic tests
         run: npm test
 
+      - name: Evaluate scanner corpus
+        run: npm run evaluate
+
       - name: Build production assets
         run: npm run build

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://gurnoorpannu.github.io/PayChaos/sitemap.xml
