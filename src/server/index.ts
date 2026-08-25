@@ -11,8 +11,10 @@ import {
   type RepositorySourceFile
 } from "../core/repositoryScanner.js";
 import {
+  protectedCrashSource,
   protectedMerchantSource,
   protectedStateSource,
+  vulnerableCrashSource,
   vulnerableStateSource,
   vulnerableMerchantSource
 } from "../core/sample.js";
@@ -42,6 +44,12 @@ function rememberScan(scan: RepositoryScanResult): string {
   recentScans.set(scanId, scan);
   if (recentScans.size > 20) recentScans.delete(recentScans.keys().next().value!);
   return scanId;
+}
+
+function parseScenario(value: unknown): ScenarioId {
+  if (value === "out-of-order-regression") return "out-of-order-regression";
+  if (value === "crash-before-side-effect") return "crash-before-side-effect";
+  return "duplicate-after-timeout";
 }
 
 async function repositoryResponse(scan: RepositoryScanResult) {
@@ -79,6 +87,14 @@ app.get("/api/overview", (_request, response) => {
         description:
           "Deliver capture first, then release an older delayed failure for the same payment.",
         operators: ["Capture", "Delay", "Stale failure", "Inspect"]
+      },
+      {
+        id: "CHAOS-003",
+        scenario: "crash-before-side-effect",
+        name: "Crash before external side effect",
+        description:
+          "Crash after payment state commits but before shipment dispatch, then restart and replay delivery.",
+        operators: ["Commit", "Crash", "Restart", "Recover"]
       }
     ],
     source: vulnerableMerchantSource
@@ -93,7 +109,11 @@ app.get("/api/intelligence/status", (_request, response) => {
 app.post("/api/repositories/demo/:mode", async (request, response) => {
   try {
     const fixture =
-      request.params.mode === "protected" ? "protected-merchant" : "vulnerable-merchant";
+      request.params.mode === "protected"
+        ? "protected-merchant"
+        : request.params.mode === "crash"
+          ? "crash-vulnerable"
+          : "vulnerable-merchant";
     const scan = await scanRepository(path.join(projectRoot, "fixtures", fixture));
     response.json(await repositoryResponse(scan));
   } catch (error) {
@@ -158,15 +178,16 @@ app.post("/api/intelligence/hypothesize", async (request, response) => {
 
 app.get("/api/source/:scenario/:mode", (request, response) => {
   const mode = request.params.mode === "protected" ? "protected" : "vulnerable";
-  const scenario: ScenarioId =
-    request.params.scenario === "out-of-order-regression"
-      ? "out-of-order-regression"
-      : "duplicate-after-timeout";
+  const scenario = parseScenario(request.params.scenario);
   response.json({
     mode,
     scenario,
     source:
-      scenario === "out-of-order-regression"
+      scenario === "crash-before-side-effect"
+        ? mode === "protected"
+          ? protectedCrashSource
+          : vulnerableCrashSource
+        : scenario === "out-of-order-regression"
         ? mode === "protected"
           ? protectedStateSource
           : vulnerableStateSource
@@ -179,10 +200,7 @@ app.get("/api/source/:scenario/:mode", (request, response) => {
 app.post("/api/campaigns", (request, response) => {
   const mode: ProtectionMode =
     request.body?.mode === "protected" ? "protected" : "vulnerable";
-  const scenario: ScenarioId =
-    request.body?.scenario === "out-of-order-regression"
-      ? "out-of-order-regression"
-      : "duplicate-after-timeout";
+  const scenario = parseScenario(request.body?.scenario);
   response.json(runCampaign(scenario, mode));
 });
 

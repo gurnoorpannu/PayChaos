@@ -228,7 +228,13 @@ export function App() {
               >
                 <span>{scenario.id}</span>
                 <strong>{scenario.name}</strong>
-                <small>{scenario.scenario === "duplicate-after-timeout" ? "IDEMPOTENCY" : "STATE ORDERING"}</small>
+                <small>
+                  {scenario.scenario === "duplicate-after-timeout"
+                    ? "IDEMPOTENCY"
+                    : scenario.scenario === "out-of-order-regression"
+                      ? "STATE ORDERING"
+                      : "CRASH RECOVERY"}
+                </small>
               </button>
             ))}
           </div>
@@ -369,7 +375,7 @@ export function App() {
               <div className="verdict-row">
                 <div>
                   <span>Expected</span>
-                  <strong>≤ 1</strong>
+                  <strong>{report?.invariants[0].expected ?? "—"}</strong>
                 </div>
                 <div className="verdict-arrow"><Icon name="arrow" /></div>
                 <div>
@@ -519,7 +525,11 @@ export function App() {
               {lineNumbers.map(({ number, line }) => (
                 <div
                   className={
-                    line.includes("fulfilment.create") || line.includes("eventId has a UNIQUE")
+                    line.includes("fulfilment.create") ||
+                    line.includes("eventId has a UNIQUE") ||
+                    line.includes("outbox.create") ||
+                    line.includes("queueShipment") ||
+                    line.includes("payment.update")
                       ? `code-line highlight-${mode}`
                       : "code-line"
                   }
