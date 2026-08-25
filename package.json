@@ -9,6 +9,7 @@
     "dev:web": "vite",
     "build": "tsc --noEmit && vite build",
     "scan": "tsx src/cli/scan.ts",
+    "evaluate": "tsx src/cli/evaluate.ts",
     "start": "tsx src/server/index.ts",
     "test": "vitest run",
     "test:watch": "vitest"
