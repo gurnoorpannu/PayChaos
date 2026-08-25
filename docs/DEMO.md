@@ -6,7 +6,8 @@
 one fulfilment. But payment systems use asynchronous, at-least-once delivery,
 so the happy path is not the production path.”
 
-Show the **Vulnerable baseline** with a resilience score of 42.
+Show the **Vulnerable baseline** with a resilience score of 40 and the
+**LIVE HTTP** target badge.
 
 ## 0:30–1:15 — Understanding the integration
 
@@ -34,12 +35,13 @@ from the resulting database state.”
 
 Run the campaign and narrate the timeline:
 
-1. The signed `payment.captured` webhook is accepted.
-2. Fulfilment `ful_001` commits.
-3. The acknowledgement is lost.
-4. The same event ID is retried.
-5. Fulfilment `ful_002` commits.
-6. `INV-001` observes two fulfilments and fails.
+1. PayChaos starts an Express merchant on an ephemeral loopback port.
+2. The signed `payment.captured` webhook is accepted over HTTP.
+3. Fulfilment `ful_live_001` commits.
+4. The HTTP client acknowledgement times out.
+5. The same event ID is retried through the live route.
+6. Fulfilment `ful_live_002` commits.
+7. PayChaos reads observed target state and `INV-001` fails.
 
 Pause on:
 
@@ -60,9 +62,9 @@ same transaction as fulfilment.”
 
 ## 4:10–4:45 — Exact replay
 
-The same signature, event ID, payload, and fault schedule run again. The retry
-sees the existing event claim and writes zero rows. The score becomes 96 and
-the invariant passes.
+The same signature, event ID, payload, HTTP transport, and fault schedule run
+again. The retry sees the existing event claim and writes zero rows. The score
+becomes 97 and the invariant passes.
 
 ## 4:45–5:00 — Close
 

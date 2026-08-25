@@ -29,6 +29,12 @@ loops against a Razorpay-shaped integration:
 The vulnerable implementation fails with two fulfilments for one payment. The
 protected implementation absorbs the duplicate and passes.
 
+`CHAOS-001` now executes this replay against a running Express merchant over
+real loopback HTTP. PayChaos aborts the first client acknowledgement after the
+target commits, retries the identical signed request, and evaluates the
+invariant from the target's instrumented state endpoint. API responses label
+whether evidence came from `live-http` or a `deterministic-model`.
+
 The second campaign delivers `payment.captured` before releasing an older,
 delayed `payment.failed` event. A last-write-wins handler regresses the payment
 to `FAILED`; a monotonic state guard preserves `CAPTURED`.
@@ -201,20 +207,20 @@ src/
 docs/
 ├── ARCHITECTURE.md
 ├── DEMO.md
+├── DELIVERY_PLAN.md
 ├── INTELLIGENCE.md
 └── SCANNING.md
 ```
 
-## Buildathon roadmap
+## Delivery roadmap
 
-- Add authenticated GitHub ingestion on top of the working local scanner.
-- Evaluate the schema-constrained model provider across the vulnerability corpus.
-- Add partial-refund and capture-limit campaigns.
-- Run merchant applications in disposable, network-isolated sandboxes.
-- Capture database queries, logs, spans, and fulfilment side effects as evidence.
-- Generate a regression test and open a reviewable patch after user approval.
-- Evaluate hypothesis precision and deterministic reproduction rate across a
-  corpus of vulnerable and hardened integrations.
+Phase 1, live HTTP merchant execution, is complete. The remaining work is
+sequenced in [docs/DELIVERY_PLAN.md](docs/DELIVERY_PLAN.md).
+
+1. Connect Razorpay Test Mode safely.
+2. Generate executable regression tests from proven incidents.
+3. Run selected Node targets inside a bounded disposable sandbox.
+4. Evaluate, deploy and harden the final submission.
 
 ## Safety
 

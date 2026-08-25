@@ -98,9 +98,17 @@ t+1.08  evaluate the concurrent-fulfilment invariant
 ### 4. Merchant adapter
 
 The adapter is the narrow interface between a campaign and the system under
-test. In the local MVP it is an in-memory merchant with vulnerable and
-protected modes. A sandbox adapter will later translate the same operations to
-HTTP, process, database, and telemetry controls around a real application.
+test. `CHAOS-001` now starts a running Express merchant on an ephemeral loopback
+port, delivers both signed requests through HTTP, and reads observed state from
+a narrow instrumentation endpoint. The target is always stopped after the
+campaign. Its vulnerable and protected modes share the same transport and fault
+schedule.
+
+The other campaigns remain deterministic in-process merchant models. Every
+campaign report identifies its execution kind, target, transport, request count
+and state-read count so simulated and live evidence cannot be confused. A later
+sandbox adapter will apply the live protocol to selected repository code with
+explicit process, filesystem, network and time bounds.
 
 ### 5. Invariant oracle
 
