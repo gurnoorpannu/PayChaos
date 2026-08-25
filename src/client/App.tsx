@@ -93,6 +93,8 @@ export function App() {
   const [source, setSource] = useState("");
   const [running, setRunning] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generatingRegression, setGeneratingRegression] = useState(false);
+  const [regressionError, setRegressionError] = useState<string | null>(null);
 
   const runCampaign = useCallback(async (
     nextMode: ProtectionMode,
@@ -166,6 +168,38 @@ export function App() {
     setScenarioId(nextScenario);
     void runCampaign(mode, nextScenario);
   };
+
+  async function downloadRegression() {
+    setGeneratingRegression(true);
+    setRegressionError(null);
+
+    try {
+      const response = await fetch(`/api/regressions/${scenarioId}`, { method: "POST" });
+      const artifact = (await response.json()) as {
+        fileName?: string;
+        source?: string;
+        error?: string;
+      };
+      if (!response.ok || !artifact.fileName || !artifact.source) {
+        throw new Error(artifact.error ?? "Regression generation failed.");
+      }
+
+      const url = URL.createObjectURL(new Blob([artifact.source], { type: "text/typescript" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = artifact.fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (generationError) {
+      setRegressionError(
+        generationError instanceof Error
+          ? generationError.message
+          : "Regression generation failed."
+      );
+    } finally {
+      setGeneratingRegression(false);
+    }
+  }
 
   const lineNumbers = useMemo(
     () => source.split("\n").map((line, index) => ({ number: index + 1, line })),
@@ -475,11 +509,21 @@ export function App() {
                   <p>{report.finding.suggestedFix}</p>
                 </div>
                 {failed ? (
-                  <button onClick={() => changeMode("protected")}>
-                    Verify fix <Icon name="arrow" size={15} />
-                  </button>
+                  <div className="finding-actions">
+                    <button
+                      className="regression-button"
+                      disabled={generatingRegression}
+                      onClick={() => void downloadRegression()}
+                    >
+                      {generatingRegression ? "Generating…" : "Download regression"}
+                    </button>
+                    <button onClick={() => changeMode("protected")}>
+                      Verify fix <Icon name="arrow" size={15} />
+                    </button>
+                  </div>
                 ) : null}
               </div>
+              {regressionError ? <div className="finding-error">{regressionError}</div> : null}
             </div>
           </section>
         ) : null}

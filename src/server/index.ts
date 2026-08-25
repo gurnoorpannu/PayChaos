@@ -10,6 +10,7 @@ import {
   RazorpayConnectorError
 } from "../connectors/razorpayTestMode.js";
 import { IntelligenceService } from "../core/intelligence.js";
+import { generateRegressionArtifact } from "../core/regressionGenerator.js";
 import {
   scanRepository,
   scanSourceFiles,
@@ -253,6 +254,19 @@ app.post("/api/campaigns", async (request, response) => {
     response.status(500).json({
       error: error instanceof Error ? error.message : "Campaign execution failed."
     });
+  }
+});
+
+app.post("/api/regressions/:scenario", async (request, response) => {
+  try {
+    const scenario = parseScenario(request.params.scenario);
+    const report =
+      scenario === "duplicate-after-timeout"
+        ? await runLiveDuplicateCampaign("vulnerable")
+        : runCampaign(scenario, "vulnerable");
+    response.json(generateRegressionArtifact(report));
+  } catch {
+    response.status(500).json({ error: "Regression artifact generation failed." });
   }
 });
 
