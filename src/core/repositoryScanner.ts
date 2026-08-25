@@ -44,6 +44,7 @@ export interface WebhookSurface {
   eventIdIdempotency: boolean;
   transactionBoundary: boolean;
   monotonicStateGuard: boolean;
+  durableOutbox: boolean;
   sideEffects: string[];
 }
 
@@ -51,13 +52,18 @@ export interface RepositoryRisk {
   id:
     | "missing-signature-verification"
     | "missing-event-idempotency"
-    | "non-monotonic-payment-state";
+    | "non-monotonic-payment-state"
+    | "non-atomic-external-side-effect";
   severity: "critical" | "high";
   title: string;
   file: string;
   line: number;
   reason: string;
-  suggestedScenario: "forged-webhook" | "duplicate-after-timeout" | "out-of-order-regression";
+  suggestedScenario:
+    | "forged-webhook"
+    | "duplicate-after-timeout"
+    | "out-of-order-regression"
+    | "crash-before-side-effect";
 }
 
 export interface RepositoryScanResult {
@@ -163,6 +169,11 @@ export function scanSourceFiles(
         /CAPTURED[^\n]{0,120}(?:payment\.failed|FAILED)[^\n]{0,80}(?:return|ignore|skip)|monotonic/i.test(
           file.content
         ),
+      durableOutbox:
+        /outbox\.(?:create|insert)|outboxWorker|transactional outbox/i.test(file.content) &&
+        /\$transaction|transaction\.atomic|withTransaction|BEGIN TRANSACTION|@Transactional/i.test(
+          file.content
+        ),
       sideEffects
     };
     webhookSurfaces.push(surface);
@@ -195,6 +206,25 @@ export function scanSourceFiles(
         line: surface.line,
         reason: "The handler creates fulfilment work but no unique x-razorpay-event-id claim was detected.",
         suggestedScenario: "duplicate-after-timeout"
+      });
+    }
+
+    if (
+      events.includes("payment.captured") &&
+      surface.eventIdIdempotency &&
+      surface.transactionBoundary &&
+      sideEffects.includes("queue shipment") &&
+      !surface.durableOutbox
+    ) {
+      risks.push({
+        id: "non-atomic-external-side-effect",
+        severity: "high",
+        title: "A crash can strand a committed payment side effect",
+        file: file.path,
+        line: surface.line,
+        reason:
+          "The event is claimed transactionally, but shipment dispatch has no durable outbox handoff.",
+        suggestedScenario: "crash-before-side-effect"
       });
     }
 

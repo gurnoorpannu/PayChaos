@@ -14,7 +14,11 @@ export interface SuggestedInvariant {
 export interface SuggestedHypothesis {
   id: string;
   title: string;
-  scenario: "forged-webhook" | "duplicate-after-timeout" | "out-of-order-regression";
+  scenario:
+    | "forged-webhook"
+    | "duplicate-after-timeout"
+    | "out-of-order-regression"
+    | "crash-before-side-effect";
   evidence: string[];
   confidence: number;
   financialImpact: string;
@@ -75,7 +79,8 @@ const intelligenceSchema = {
             enum: [
               "forged-webhook",
               "duplicate-after-timeout",
-              "out-of-order-regression"
+              "out-of-order-regression",
+              "crash-before-side-effect"
             ]
           },
           evidence: { type: "array", items: { type: "string" } },
@@ -113,6 +118,14 @@ function invariantForRisk(risk: RepositoryRisk): SuggestedInvariant {
       rationale: "An older failure snapshot must not overwrite confirmed captured funds."
     };
   }
+  if (risk.id === "non-atomic-external-side-effect") {
+    return {
+      id: "INV-003",
+      name: "Durable fulfilment dispatch",
+      expression: "captured(P) ⇒ count(shipment_jobs(order(P))) = 1",
+      rationale: "A process crash must not separate committed payment state from its required external side effect."
+    };
+  }
   return {
     id: "INV-001",
     name: "Exactly-once fulfilment",
@@ -133,6 +146,8 @@ function hypothesisForRisk(risk: RepositoryRisk, index: number): SuggestedHypoth
         ? "Duplicate order, shipment, credit, or entitlement for one captured payment."
         : risk.id === "non-monotonic-payment-state"
           ? "Paid orders can be treated as unpaid, withheld, or incorrectly recovered."
+          : risk.id === "non-atomic-external-side-effect"
+            ? "Captured orders can remain permanently stranded without shipment work."
           : "A forged request can create unauthorized financial state or fulfilment."
   };
 }
@@ -190,9 +205,12 @@ function isPayload(value: unknown): value is IntelligencePayload {
         item &&
         typeof item.id === "string" &&
         typeof item.title === "string" &&
-        ["forged-webhook", "duplicate-after-timeout", "out-of-order-regression"].includes(
-          item.scenario
-        ) &&
+        [
+          "forged-webhook",
+          "duplicate-after-timeout",
+          "out-of-order-regression",
+          "crash-before-side-effect"
+        ].includes(item.scenario) &&
         Array.isArray(item.evidence) &&
         item.evidence.every((evidence) => typeof evidence === "string") &&
         typeof item.confidence === "number" &&

@@ -24,7 +24,7 @@ function printHumanReport(result: Awaited<ReturnType<typeof scanRepository>>) {
     console.log(`  events       ${surface.events.join(", ")}`);
     console.log(`  side effects ${surface.sideEffects.join(", ") || "none detected"}`);
     console.log(
-      `  controls     signature=${surface.signatureVerification} event-id=${surface.eventIdIdempotency} transaction=${surface.transactionBoundary} monotonic=${surface.monotonicStateGuard}`
+      `  controls     signature=${surface.signatureVerification} event-id=${surface.eventIdIdempotency} transaction=${surface.transactionBoundary} monotonic=${surface.monotonicStateGuard} outbox=${surface.durableOutbox}`
     );
   }
 
