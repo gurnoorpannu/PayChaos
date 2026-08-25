@@ -174,3 +174,30 @@ export const protectedConcurrencySource = `router.post("/webhooks/razorpay", raw
   }
   return res.sendStatus(200);
 });`;
+
+export const vulnerableSignatureSource = `router.post("/webhooks/razorpay", rawBody, async (req, res) => {
+  // The payload is trusted without verifying x-razorpay-signature.
+  if (req.body.event === "payment.captured") {
+    const payment = req.body.payload.payment.entity;
+    await prisma.fulfilment.create({
+      data: { paymentId: payment.id, orderId: payment.order_id }
+    });
+  }
+  return res.sendStatus(200);
+});`;
+
+export const protectedSignatureSource = `router.post("/webhooks/razorpay", rawBody, async (req, res) => {
+  const signatureValid = verifyRazorpaySignature(
+    req.rawBody,
+    req.headers["x-razorpay-signature"]
+  );
+  if (!signatureValid) return res.sendStatus(401);
+
+  if (req.body.event === "payment.captured") {
+    const payment = req.body.payload.payment.entity;
+    await prisma.fulfilment.create({
+      data: { paymentId: payment.id, orderId: payment.order_id }
+    });
+  }
+  return res.sendStatus(200);
+});`;

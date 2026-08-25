@@ -23,7 +23,8 @@ const scenarioCategory: Record<ScenarioId, string> = {
   "duplicate-after-timeout": "IDEMPOTENCY",
   "out-of-order-regression": "STATE ORDERING",
   "crash-before-side-effect": "CRASH RECOVERY",
-  "concurrent-delivery-race": "CONCURRENCY"
+  "concurrent-delivery-race": "CONCURRENCY",
+  "forged-webhook": "AUTHENTICITY"
 };
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
@@ -592,6 +593,7 @@ export function App() {
                 <div
                   className={
                     line.includes("fulfilment.create") ||
+                    line.includes("verifyRazorpaySignature") ||
                     line.includes("eventId has a UNIQUE") ||
                     line.includes("findFirst") ||
                     line.includes("outbox.create") ||

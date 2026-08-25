@@ -56,6 +56,7 @@ function parseScenario(value: unknown): ScenarioId {
   if (value === "out-of-order-regression") return "out-of-order-regression";
   if (value === "crash-before-side-effect") return "crash-before-side-effect";
   if (value === "concurrent-delivery-race") return "concurrent-delivery-race";
+  if (value === "forged-webhook") return "forged-webhook";
   return "duplicate-after-timeout";
 }
 
@@ -147,6 +148,8 @@ app.post("/api/repositories/demo/:mode", async (request, response) => {
     const fixture =
       request.params.mode === "protected"
         ? "protected-merchant"
+        : request.params.mode === "signature"
+          ? "signature-vulnerable"
         : request.params.mode === "crash"
           ? "crash-vulnerable"
           : request.params.mode === "race"

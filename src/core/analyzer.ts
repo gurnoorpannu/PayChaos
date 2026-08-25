@@ -2,10 +2,12 @@ import {
   protectedConcurrencySource,
   protectedCrashSource,
   protectedMerchantSource,
+  protectedSignatureSource,
   protectedStateSource,
   vulnerableConcurrencySource,
   vulnerableCrashSource,
   vulnerableMerchantSource,
+  vulnerableSignatureSource,
   vulnerableStateSource
 } from "./sample.js";
 import type {
@@ -24,6 +26,8 @@ function sourceForScenario(mode: ProtectionMode, scenario: ScenarioId): string {
       return protectedMode ? protectedCrashSource : vulnerableCrashSource;
     case "concurrent-delivery-race":
       return protectedMode ? protectedConcurrencySource : vulnerableConcurrencySource;
+    case "forged-webhook":
+      return protectedMode ? protectedSignatureSource : vulnerableSignatureSource;
     default:
       return protectedMode ? protectedMerchantSource : vulnerableMerchantSource;
   }
@@ -36,10 +40,12 @@ export function analyzeMerchant(
   const stateScenario = scenario === "out-of-order-regression";
   const crashScenario = scenario === "crash-before-side-effect";
   const concurrencyScenario = scenario === "concurrent-delivery-race";
+  const signatureScenario = scenario === "forged-webhook";
   const source = sourceForScenario(mode, scenario);
   const routeMatch = source.match(/router\.post\("([^"]+)"/);
   const eventMatch = source.match(/event === "([^"]+)"/);
   const hasEventHeader = source.includes("x-razorpay-event-id");
+  const hasSignatureVerification = source.includes("verifyRazorpaySignature");
   const hasUniqueClaim = source.includes("UNIQUE constraint");
   const hasIdempotencyGuard = hasEventHeader && hasUniqueClaim;
   const evidenceNeedle = stateScenario
@@ -48,6 +54,8 @@ export function analyzeMerchant(
       ? "outbox.create"
       : crashScenario
         ? "queueShipment"
+        : signatureScenario && mode === "protected"
+          ? "verifyRazorpaySignature"
         : concurrencyScenario && mode === "vulnerable"
           ? "findFirst"
           : "fulfilment.create";
@@ -67,7 +75,75 @@ export function analyzeMerchant(
       ? hasDurableOutbox
       : stateScenario
         ? hasMonotonicGuard
+        : signatureScenario
+          ? hasSignatureVerification
         : hasIdempotencyGuard;
+
+  const sideEffect = concurrencyScenario
+    ? "Checks event history before creating fulfilment"
+    : crashScenario
+      ? "Commits fulfilment then dispatches shipment"
+      : stateScenario
+        ? "Updates the persisted payment status"
+        : signatureScenario
+          ? "Trusts or rejects the signed capture payload"
+          : "Creates a fulfilment and queues a shipment";
+
+  const excerpt = concurrencyScenario
+    ? hasAtomicEventClaim
+      ? "UNIQUE(eventId) claimed inside the fulfilment transaction"
+      : "findFirst(eventId) → fulfilment.create()"
+    : crashScenario
+      ? hasDurableOutbox
+        ? "tx.outbox.create({ key: `shipment:${orderId}` })"
+        : "commit fulfilment → queueShipment(orderId)"
+      : stateScenario
+        ? hasMonotonicGuard
+          ? "if (current.status === \"CAPTURED\" && event === \"payment.failed\") return"
+          : "payment.failed → data: { status: \"FAILED\" }"
+        : signatureScenario
+          ? hasSignatureVerification
+            ? "verifyRazorpaySignature(rawBody, x-razorpay-signature)"
+            : "payment.captured → fulfilment.create() without signature verification"
+          : hasIdempotencyGuard
+            ? "UNIQUE(eventId) claimed inside the fulfilment transaction"
+            : "prisma.fulfilment.create({ paymentId: payment.id })";
+
+  const handlerLabel = concurrencyScenario
+    ? hasAtomicEventClaim ? "Atomic event claim" : "Check-then-insert guard"
+    : crashScenario
+      ? hasDurableOutbox ? "Transactional outbox" : "Post-commit dispatch"
+      : stateScenario
+        ? hasMonotonicGuard ? "State transition guard" : "Last-write-wins handler"
+        : signatureScenario
+          ? hasSignatureVerification ? "Signature boundary" : "Unsigned trust boundary"
+          : hasIdempotencyGuard ? "Atomic event claim" : "Event handler";
+
+  const handlerDetail = concurrencyScenario
+    ? hasAtomicEventClaim ? "Database uniqueness serializes workers" : "Race window between read and write"
+    : crashScenario
+      ? hasDurableOutbox ? "Durable recovery boundary" : "No durable handoff"
+      : stateScenario
+        ? hasMonotonicGuard ? "Captured state cannot regress" : "No monotonic state guard"
+        : signatureScenario
+          ? hasSignatureVerification ? "Invalid HMAC stops execution" : "Payload authenticity is unchecked"
+          : hasIdempotencyGuard ? "Unique event ID guard" : "No idempotency guard";
+
+  const databaseLabel = concurrencyScenario
+    ? "Fulfilments"
+    : crashScenario
+      ? hasDurableOutbox ? "Outbox worker" : "Shipment queue"
+      : stateScenario ? "Payments" : "Fulfilments";
+
+  const databaseDetail = concurrencyScenario
+    ? hasAtomicEventClaim ? "One committed row" : "Two racing inserts"
+    : crashScenario
+      ? hasDurableOutbox ? "Retry pending dispatch" : "Best-effort call"
+      : stateScenario
+        ? "UPDATE status"
+        : signatureScenario
+          ? hasSignatureVerification ? "Zero forged writes" : "Forged INSERT"
+          : "INSERT + queue shipment";
 
   return {
     framework: "Express + Prisma",
@@ -76,33 +152,13 @@ export function analyzeMerchant(
     detectedEvent: stateScenario
       ? "payment.captured + payment.failed"
       : eventMatch?.[1] ?? "payment.captured",
-    sideEffect: concurrencyScenario
-      ? "Checks event history before creating fulfilment"
-      : crashScenario
-        ? "Commits fulfilment then dispatches shipment"
-        : stateScenario
-          ? "Updates the persisted payment status"
-          : "Creates a fulfilment and queues a shipment",
+    sideEffect,
     idempotencyGuard: protectedBoundary,
     confidence: protectedBoundary ? 0.96 : 0.98,
     evidence: {
       file: "src/routes/razorpay-webhook.ts",
       line: fulfilmentLine + 1,
-      excerpt: concurrencyScenario
-        ? hasAtomicEventClaim
-          ? "UNIQUE(eventId) claimed inside the fulfilment transaction"
-          : "findFirst(eventId) → fulfilment.create()"
-        : crashScenario
-          ? hasDurableOutbox
-            ? "tx.outbox.create({ key: `shipment:${orderId}` })"
-            : "commit fulfilment → queueShipment(orderId)"
-          : stateScenario
-            ? hasMonotonicGuard
-              ? "if (current.status === \"CAPTURED\" && event === \"payment.failed\") return"
-              : "payment.failed → data: { status: \"FAILED\" }"
-            : hasIdempotencyGuard
-              ? "UNIQUE(eventId) claimed inside the fulfilment transaction"
-              : "prisma.fulfilment.create({ paymentId: payment.id })"
+      excerpt
     },
     nodes: [
       {
@@ -119,61 +175,15 @@ export function analyzeMerchant(
       },
       {
         id: "handler",
-        label: concurrencyScenario
-          ? hasAtomicEventClaim
-            ? "Atomic event claim"
-            : "Check-then-insert guard"
-          : crashScenario
-            ? hasDurableOutbox
-              ? "Transactional outbox"
-              : "Post-commit dispatch"
-            : stateScenario
-              ? hasMonotonicGuard
-                ? "State transition guard"
-                : "Last-write-wins handler"
-              : hasIdempotencyGuard
-                ? "Atomic event claim"
-                : "Event handler",
-        detail: concurrencyScenario
-          ? hasAtomicEventClaim
-            ? "Database uniqueness serializes workers"
-            : "Race window between read and write"
-          : crashScenario
-            ? hasDurableOutbox
-              ? "Durable recovery boundary"
-              : "No durable handoff"
-            : stateScenario
-              ? hasMonotonicGuard
-                ? "Captured state cannot regress"
-                : "No monotonic state guard"
-              : hasIdempotencyGuard
-                ? "Unique event ID guard"
-                : "No idempotency guard",
+        label: handlerLabel,
+        detail: handlerDetail,
         kind: "logic",
         risk: !protectedBoundary
       },
       {
         id: "database",
-        label: concurrencyScenario
-          ? "Fulfilments"
-          : crashScenario
-            ? hasDurableOutbox
-              ? "Outbox worker"
-              : "Shipment queue"
-            : stateScenario
-              ? "Payments"
-              : "Fulfilments",
-        detail: concurrencyScenario
-          ? hasAtomicEventClaim
-            ? "One committed row"
-            : "Two racing inserts"
-          : crashScenario
-            ? hasDurableOutbox
-              ? "Retry pending dispatch"
-              : "Best-effort call"
-            : stateScenario
-              ? "UPDATE status"
-              : "INSERT + queue shipment",
+        label: databaseLabel,
+        detail: databaseDetail,
         kind: "database"
       }
     ]
@@ -228,6 +238,21 @@ export function generateHypothesis(
       faultPlan: ["Fork delivery", "Read concurrently", "Release both workers", "Inspect rows"],
       invariant: "concurrent(deliveries(E)) ⇒ count(fulfilments(payment(E))) <= 1",
       confidence: guarded ? 0.97 : 0.99
+    };
+  }
+
+  if (scenario === "forged-webhook") {
+    return {
+      id: "HYP-005",
+      title: guarded
+        ? "A tampered capture should be rejected before business logic"
+        : "A forged capture can create merchant-side value",
+      reasoning: guarded
+        ? "The handler verifies the HMAC over the unmodified raw body before parsing or writing business state. A payload changed after signing must receive HTTP 401 and create no fulfilment."
+        : "The webhook route trusts event fields without authenticating the raw request body. An attacker can submit a Razorpay-shaped captured event and trigger the same fulfilment path as a real payment.",
+      faultPlan: ["Sign valid body", "Tamper amount", "Deliver forged event", "Inspect writes"],
+      invariant: "invalid_signature(E) ⇒ count(side_effects(E)) = 0",
+      confidence: 0.99
     };
   }
 

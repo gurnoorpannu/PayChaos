@@ -2,10 +2,12 @@ import {
   protectedConcurrencySource,
   protectedCrashSource,
   protectedMerchantSource,
+  protectedSignatureSource,
   protectedStateSource,
   vulnerableConcurrencySource,
   vulnerableCrashSource,
   vulnerableMerchantSource,
+  vulnerableSignatureSource,
   vulnerableStateSource
 } from "./sample.js";
 import type {
@@ -23,6 +25,8 @@ export function sourceForScenario(scenario: ScenarioId, mode: ProtectionMode): s
       return protectedMode ? protectedCrashSource : vulnerableCrashSource;
     case "concurrent-delivery-race":
       return protectedMode ? protectedConcurrencySource : vulnerableConcurrencySource;
+    case "forged-webhook":
+      return protectedMode ? protectedSignatureSource : vulnerableSignatureSource;
     default:
       return protectedMode ? protectedMerchantSource : vulnerableMerchantSource;
   }
@@ -67,6 +71,14 @@ export function getOverview(): OverviewResponse {
         description:
           "Release the same captured event to two workers together, pausing both after their idempotency read.",
         operators: ["Fork", "Read", "Race", "Inspect"]
+      },
+      {
+        id: "CHAOS-005",
+        scenario: "forged-webhook",
+        name: "Forged webhook boundary",
+        description:
+          "Sign a valid capture, mutate its raw payment amount, then deliver the forged bytes with the stale signature.",
+        operators: ["Sign", "Tamper", "Deliver", "Inspect"]
       }
     ],
     source: vulnerableMerchantSource

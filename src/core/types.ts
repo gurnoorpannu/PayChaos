@@ -3,7 +3,8 @@ export type ScenarioId =
   | "duplicate-after-timeout"
   | "out-of-order-regression"
   | "crash-before-side-effect"
-  | "concurrent-delivery-race";
+  | "concurrent-delivery-race"
+  | "forged-webhook";
 
 export type TimelineKind =
   | "analysis"
