@@ -135,3 +135,42 @@ export const protectedCrashSource = `router.post("/webhooks/razorpay", rawBody, 
 
 // A restart-safe worker drains pending outbox rows until dispatch succeeds.
 await outboxWorker.start({ retry: "exponential", delivery: "at-least-once" });`;
+
+export const vulnerableConcurrencySource = `router.post("/webhooks/razorpay", rawBody, async (req, res) => {
+  verifyRazorpaySignature(req.body, req.headers);
+  const eventId = req.headers["x-razorpay-event-id"];
+  const payment = req.body.payload.payment.entity;
+
+  // Looks idempotent, but two workers can both observe "not processed".
+  const alreadyProcessed = await prisma.webhookEvent.findFirst({
+    where: { eventId }
+  });
+  if (alreadyProcessed) return res.sendStatus(200);
+
+  await prisma.fulfilment.create({
+    data: { paymentId: payment.id, orderId: payment.order_id }
+  });
+  await prisma.webhookEvent.create({ data: { eventId } });
+  return res.sendStatus(200);
+});`;
+
+export const protectedConcurrencySource = `router.post("/webhooks/razorpay", rawBody, async (req, res) => {
+  verifyRazorpaySignature(req.body, req.headers);
+  const eventId = req.headers["x-razorpay-event-id"];
+  const payment = req.body.payload.payment.entity;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.webhookEvent.create({
+        data: { eventId } // eventId has a UNIQUE constraint
+      });
+      await tx.fulfilment.create({
+        data: { paymentId: payment.id, orderId: payment.order_id }
+      });
+    });
+  } catch (error) {
+    if (error.code !== "P2002") throw error;
+    // Another worker atomically claimed this event.
+  }
+  return res.sendStatus(200);
+});`;
