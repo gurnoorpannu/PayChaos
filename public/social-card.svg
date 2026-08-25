@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">PayChaos — AI-powered payment reliability engineer</title>
+  <desc id="description">PayChaos understands payment code, attacks failure boundaries, and verifies financial invariants.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#08090b"/>
+      <stop offset="0.62" stop-color="#0b0d10"/>
+      <stop offset="1" stop-color="#11150d"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(1060 64) rotate(137) scale(580 450)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b9ef45" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#b9ef45" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" rx="30" fill="url(#background)"/>
+  <rect width="1200" height="630" rx="30" fill="url(#glow)"/>
+  <path d="M0 90H1200M0 540H1200" stroke="#22262b"/>
+  <path d="M74 0V630M1126 0V630" stroke="#171a1e"/>
+
+  <g transform="translate(76 48)">
+    <rect width="46" height="46" rx="8" fill="#151a11" stroke="#8fb932"/>
+    <path d="M26 8 13 26h10l-3 13 14-20H24l2-11Z" fill="#b9ef45"/>
+    <text x="62" y="32" fill="#f5f7f2" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="700">PayChaos</text>
+  </g>
+
+  <g transform="translate(875 54)">
+    <circle cx="7" cy="15" r="5" fill="#75e7a7" filter="url(#softGlow)"/>
+    <circle cx="7" cy="15" r="4" fill="#75e7a7"/>
+    <text x="22" y="20" fill="#bdc4bd" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600">RAZORPAY BUILDATHON</text>
+  </g>
+
+  <g transform="translate(76 145)">
+    <text fill="#b9ef45" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="700" letter-spacing="2">AI-POWERED PAYMENT RELIABILITY ENGINEER</text>
+    <text y="74" fill="#f5f7f2" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="760" letter-spacing="-2.5">Break payments before</text>
+    <text y="142" fill="#f5f7f2" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="760" letter-spacing="-2.5">production does.</text>
+    <text y="194" fill="#9ba39d" font-family="Inter, Arial, sans-serif" font-size="22">Understand the integration. Inject the failure. Prove the outcome.</text>
+  </g>
+
+  <g transform="translate(76 405)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700">
+    <g>
+      <rect width="172" height="60" rx="10" fill="#0e1114" stroke="#32373d"/>
+      <text x="20" y="26" fill="#778078" letter-spacing="1">01 · UNDERSTAND</text>
+      <text x="20" y="45" fill="#e7ebe6">payment code</text>
+    </g>
+    <path d="M184 30h28" stroke="#59605a" stroke-width="2"/>
+    <path d="m207 25 6 5-6 5" fill="none" stroke="#59605a" stroke-width="2"/>
+    <g transform="translate(226)">
+      <rect width="172" height="60" rx="10" fill="#0e1114" stroke="#32373d"/>
+      <text x="20" y="26" fill="#778078" letter-spacing="1">02 · HYPOTHESIZE</text>
+      <text x="20" y="45" fill="#e7ebe6">failure plan</text>
+    </g>
+    <path d="M410 30h28" stroke="#59605a" stroke-width="2"/>
+    <path d="m433 25 6 5-6 5" fill="none" stroke="#59605a" stroke-width="2"/>
+    <g transform="translate(452)">
+      <rect width="172" height="60" rx="10" fill="#14130e" stroke="#8b692d"/>
+      <text x="20" y="26" fill="#b2904c" letter-spacing="1">03 · ATTACK</text>
+      <text x="20" y="45" fill="#f2e6c9">exact fault</text>
+    </g>
+    <path d="M636 30h28" stroke="#59605a" stroke-width="2"/>
+    <path d="m659 25 6 5-6 5" fill="none" stroke="#59605a" stroke-width="2"/>
+    <g transform="translate(678)">
+      <rect width="172" height="60" rx="10" fill="#151016" stroke="#783b48"/>
+      <text x="20" y="26" fill="#df788e" letter-spacing="1">04 · VERIFY</text>
+      <text x="20" y="45" fill="#f5dce1">invariant</text>
+    </g>
+    <path d="M862 30h28" stroke="#59605a" stroke-width="2"/>
+    <path d="m885 25 6 5-6 5" fill="none" stroke="#59605a" stroke-width="2"/>
+    <g transform="translate(904)">
+      <rect width="146" height="60" rx="10" fill="#11160d" stroke="#6e8f2d"/>
+      <text x="20" y="26" fill="#9dcc3a" letter-spacing="1">05 · REPLAY</text>
+      <text x="20" y="45" fill="#e7f6c8">the fix</text>
+    </g>
+  </g>
+
+  <g transform="translate(76 565)" font-family="Inter, Arial, sans-serif">
+    <text y="20" fill="#f2f4f0" font-size="17" font-weight="650">We don't test whether it works.</text>
+    <text x="272" y="20" fill="#b9ef45" font-size="17" font-weight="700">We test whether it survives.</text>
+    <text x="1050" y="20" fill="#737b75" font-size="14" text-anchor="end">5 CAMPAIGNS · 46 TESTS · DETERMINISTIC ORACLES</text>
+  </g>
+</svg>

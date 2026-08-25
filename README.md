@@ -2,6 +2,8 @@
 
 > **AI can build a payment integration in minutes. PayChaos proves whether it can survive production.**
 
+![PayChaos — break payments before production does.](public/social-card.svg)
+
 [Live read-only demo](https://gurnoorpannu.github.io/PayChaos/) ·
 [Buildathon submission brief](docs/SUBMISSION.md) ·
 [Five-minute pitch plan](docs/PITCH_VIDEO.md) ·
