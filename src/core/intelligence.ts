@@ -17,6 +17,7 @@ export interface SuggestedHypothesis {
   scenario:
     | "forged-webhook"
     | "duplicate-after-timeout"
+    | "concurrent-delivery-race"
     | "out-of-order-regression"
     | "crash-before-side-effect";
   evidence: string[];
@@ -79,6 +80,7 @@ const intelligenceSchema = {
             enum: [
               "forged-webhook",
               "duplicate-after-timeout",
+              "concurrent-delivery-race",
               "out-of-order-regression",
               "crash-before-side-effect"
             ]
@@ -126,6 +128,14 @@ function invariantForRisk(risk: RepositoryRisk): SuggestedInvariant {
       rationale: "A process crash must not separate committed payment state from its required external side effect."
     };
   }
+  if (risk.id === "non-atomic-idempotency-check") {
+    return {
+      id: "INV-004",
+      name: "Atomic concurrent fulfilment",
+      expression: "concurrent(deliveries(E)) ⇒ count(fulfilments(payment(E))) <= 1",
+      rationale: "Two workers must not both pass an idempotency check before either records the event."
+    };
+  }
   return {
     id: "INV-001",
     name: "Exactly-once fulfilment",
@@ -144,6 +154,8 @@ function hypothesisForRisk(risk: RepositoryRisk, index: number): SuggestedHypoth
     financialImpact:
       risk.id === "missing-event-idempotency"
         ? "Duplicate order, shipment, credit, or entitlement for one captured payment."
+        : risk.id === "non-atomic-idempotency-check"
+          ? "Simultaneous deliveries can duplicate fulfilment despite an apparent idempotency check."
         : risk.id === "non-monotonic-payment-state"
           ? "Paid orders can be treated as unpaid, withheld, or incorrectly recovered."
           : risk.id === "non-atomic-external-side-effect"
@@ -208,6 +220,7 @@ function isPayload(value: unknown): value is IntelligencePayload {
         [
           "forged-webhook",
           "duplicate-after-timeout",
+          "concurrent-delivery-race",
           "out-of-order-regression",
           "crash-before-side-effect"
         ].includes(item.scenario) &&

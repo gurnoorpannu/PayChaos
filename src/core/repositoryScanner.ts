@@ -42,6 +42,7 @@ export interface WebhookSurface {
   events: string[];
   signatureVerification: boolean;
   eventIdIdempotency: boolean;
+  atomicEventClaim: boolean;
   transactionBoundary: boolean;
   monotonicStateGuard: boolean;
   durableOutbox: boolean;
@@ -52,6 +53,7 @@ export interface RepositoryRisk {
   id:
     | "missing-signature-verification"
     | "missing-event-idempotency"
+    | "non-atomic-idempotency-check"
     | "non-monotonic-payment-state"
     | "non-atomic-external-side-effect";
   severity: "critical" | "high";
@@ -62,6 +64,7 @@ export interface RepositoryRisk {
   suggestedScenario:
     | "forged-webhook"
     | "duplicate-after-timeout"
+    | "concurrent-delivery-race"
     | "out-of-order-regression"
     | "crash-before-side-effect";
 }
@@ -161,6 +164,12 @@ export function scanSourceFiles(
       eventIdIdempotency:
         /x-razorpay-event-id/i.test(file.content) &&
         /unique|upsert|processedEvents?|webhookEvents?|duplicate/i.test(file.content),
+      atomicEventClaim:
+        /x-razorpay-event-id/i.test(file.content) &&
+        /unique|upsert/i.test(file.content) &&
+        /\$transaction|transaction\.atomic|withTransaction|BEGIN TRANSACTION|@Transactional/i.test(
+          file.content
+        ),
       transactionBoundary:
         /\$transaction|transaction\.atomic|withTransaction|BEGIN TRANSACTION|@Transactional/i.test(
           file.content
@@ -206,6 +215,24 @@ export function scanSourceFiles(
         line: surface.line,
         reason: "The handler creates fulfilment work but no unique x-razorpay-event-id claim was detected.",
         suggestedScenario: "duplicate-after-timeout"
+      });
+    }
+
+    if (
+      events.includes("payment.captured") &&
+      createsIrreversibleWork &&
+      surface.eventIdIdempotency &&
+      !surface.atomicEventClaim
+    ) {
+      risks.push({
+        id: "non-atomic-idempotency-check",
+        severity: "critical",
+        title: "Idempotency check can lose a concurrency race",
+        file: file.path,
+        line: surface.line,
+        reason:
+          "Event history is checked before fulfilment, but no transactional unique claim protects the read-write gap.",
+        suggestedScenario: "concurrent-delivery-race"
       });
     }
 
